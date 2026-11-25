@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Split Clues</title>
+  <meta name="description" content="A cozy co-op mystery for two phones.">
+
+  <!-- iPhone "Add to Home Screen" -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Split Clues">
+  <meta name="theme-color" content="#1d1930">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+
+  <link rel="preload" href="fonts/fraunces-latin-soft-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="sky" id="sky" aria-hidden="true"></div>
+
+  <main class="app" id="app">
+    <section class="screen screen--title">
+
+      <!-- Top of the screen is decoration only: FaceTime's video window may sit over a top corner. -->
+      <header class="hero">
+        <svg class="emblem" viewBox="0 0 200 200" role="img" aria-label="A locket split into two halves">
+          <defs>
+            <path id="half-left" d="M100 30 L108 50 L94 72 L108 96 L93 120 L106 146 L100 170 A70 70 0 0 1 100 30 Z"/>
+            <path id="half-right" d="M100 30 L108 50 L94 72 L108 96 L93 120 L106 146 L100 170 A70 70 0 0 0 100 30 Z"/>
+            <clipPath id="clip-left"><use href="#half-left"/></clipPath>
+            <clipPath id="clip-right"><use href="#half-right"/></clipPath>
+            <g id="engraving">
+              <circle cx="100" cy="100" r="57" fill="none" stroke-width="2.5" stroke-dasharray="1 7" stroke-linecap="round"/>
+              <circle cx="100" cy="90" r="13" stroke="none"/>
+              <path d="M92 96 L108 96 L113 128 L87 128 Z" stroke="none"/>
+            </g>
+          </defs>
+          <circle class="emblem__glow" cx="100" cy="100" r="92"/>
+          <g class="emblem__half emblem__half--left">
+            <use href="#half-left" class="emblem__face emblem__face--left"/>
+            <use href="#engraving" class="emblem__ink" clip-path="url(#clip-left)"/>
+          </g>
+          <g class="emblem__half emblem__half--right">
+            <use href="#half-right" class="emblem__face emblem__face--right"/>
+            <use href="#engraving" class="emblem__ink" clip-path="url(#clip-right)"/>
+          </g>
+        </svg>
+
+        <h1 class="title">
+          <span class="title__a">Split</span>
+          <span class="title__b">Clues</span>
+        </h1>
+        <p class="tagline">A mystery for two</p>
+      </header>
+
+      <div class="card" aria-live="polite">
+        <h2 class="card__title">Setup check</h2>
+        <ul class="checks">
+          <li class="check" id="check-site" data-state="ok">
+            <span class="check__mark" aria-hidden="true"></span>
+            <div class="check__text">
+              <strong>This page is live</strong>
+              <span>The game is on the internet.</span>
+            </div>
+          </li>
+          <li class="check" id="check-backend" data-state="todo">
+            <span class="check__mark" aria-hidden="true"></span>
+            <div class="check__text">
+              <strong>Real-time link</strong>
+              <span id="check-backend-detail">Checking…</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <footer class="foot">
+        <p class="foot__note" id="foot-note">Rooms arrive in the next step.</p>
+        <p class="foot__build" id="build"></p>
+      </footer>
+    </section>
+  </main>
+
+  <noscript><p style="color:#f3e9da;padding:24px;font-family:system-ui">Split Clues needs JavaScript turned on.</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="20%" r="95%">
+      <stop offset="0" stop-color="#3b3159"/>
+      <stop offset="0.55" stop-color="#1d1930"/>
+      <stop offset="1" stop-color="#15121f"/>
+    </radialGradient>
+    <path id="half-left" d="M100 30 L108 50 L94 72 L108 96 L93 120 L106 146 L100 170 A70 70 0 0 1 100 30 Z"/>
+    <path id="half-right" d="M100 30 L108 50 L94 72 L108 96 L93 120 L106 146 L100 170 A70 70 0 0 0 100 30 Z"/>
+    <clipPath id="clip-left"><use href="#half-left"/></clipPath>
+    <clipPath id="clip-right"><use href="#half-right"/></clipPath>
+    <g id="engraving">
+      <circle cx="100" cy="100" r="57" fill="none" stroke-width="2.5" stroke-dasharray="1 7" stroke-linecap="round"/>
+      <circle cx="100" cy="90" r="13" stroke="none"/>
+      <path d="M92 96 L108 96 L113 128 L87 128 Z" stroke="none"/>
+    </g>
+  </defs>
+  <rect width="200" height="200" fill="url(#bg)"/>
+  <circle cx="100" cy="100" r="88" fill="#f4b860" opacity="0.1"/>
+  <g transform="translate(-6 1) rotate(-4 100 100)">
+    <use href="#half-left" fill="#f4b860" stroke="#15121f" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#engraving" fill="#1d1930" stroke="#1d1930" opacity="0.85" clip-path="url(#clip-left)"/>
+  </g>
+  <g transform="translate(6 -1) rotate(4 100 100)">
+    <use href="#half-right" fill="#ef9a9a" stroke="#15121f" stroke-width="2" stroke-linejoin="round"/>
+    <use href="#engraving" fill="#1d1930" stroke="#1d1930" opacity="0.85" clip-path="url(#clip-right)"/>
+  </g>
+</svg>
