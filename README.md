@@ -12,6 +12,9 @@ Play it at https://atallm7.github.io/split-clues/
 - `index.html` is the page, `css/app.css` the look, `js/` the game code.
 - `js/sync.js` is the only file that talks to the Firebase Realtime Database.
   `js/config.js` holds the database address.
+- `js/game/` holds the rules every puzzle shares (who has which half, lives,
+  hints, moving on) and the list of episodes. `js/puzzles/` has one file per
+  puzzle type; each draws only the half a phone holds.
 - `js/store.js` is what a phone remembers between visits (name, room, which
   player it is). The room id also lives in the page address, so a Home Screen
   icon made from inside a room opens that room.
@@ -40,6 +43,8 @@ Node with Playwright, Java, and the Firebase CLI.
 ```bash
 FIREBASE_BIN=/path/to/firebase tests/run.sh
 ```
+
+Add `rooms` or `play` to run just one of the two-phone tests.
 
 ## Trying it on a computer
 

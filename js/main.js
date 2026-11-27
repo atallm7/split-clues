@@ -2,11 +2,12 @@
 //
 //   no room in the address  -> title screen (or straight back into the last room)
 //   room, phone not known   -> join screen
-//   room, phone known       -> the room (lobby)
+//   room, phone known       -> the room (lobby), or the puzzle if a run is on
 
 import {
   configState, onConnectionChange, refreshConnection,
-  createRoom, watchRoom, claimSeat, announcePresence, sendWave,
+  createRoom, watchRoom, claimSeat, announcePresence,
+  startGame, changeGame, setPuzzleState, endGame,
 } from './sync.js';
 import * as store from './store.js';
 import { h, locket, replaceChildren } from './dom.js';
@@ -15,14 +16,17 @@ import { withTimeout } from './util.js';
 import { titleScreen } from './screens/title.js';
 import { joinScreen } from './screens/join.js';
 import { lobbyScreen } from './screens/lobby.js';
+import { playScreen } from './screens/play.js';
+import { newGame, isPlayable } from './game/engine.js';
+import { EPISODES, FIRST_EPISODE } from './game/episodes.js';
 
 // Shown at the bottom of the screen so you can tell which version a phone has loaded.
-const BUILD = 'Build 2 · rooms';
+const BUILD = 'Build 3 · code lock';
 
 const ROOM_ID = /^[a-z0-9]{20,40}$/;
 const app = document.getElementById('app');
 
-// What is on screen right now: { kind, update? }
+// What is on screen right now: { kind, update?, destroy? }
 let screen = { kind: null };
 // The room this phone is in: { roomId, seat, room, presence, stop }
 let session = null;
@@ -50,7 +54,8 @@ function start() {
 }
 
 function show(kind, built) {
-  screen = { kind, update: built.update };
+  if (screen.destroy) screen.destroy();
+  screen = { kind, update: built.update, destroy: built.destroy };
   replaceChildren(app, built.el);
   window.scrollTo(0, 0);
 }
@@ -172,17 +177,44 @@ function renderRoom() {
     mine.presence = announcePresence(mine.roomId, mine.seat);
     if (document.visibilityState === 'hidden') mine.presence.setInView(false).catch(() => {});
   }
+
+  // A run is on: both phones show the puzzle.
+  if (isPlayable(room.game)) {
+    if (screen.kind !== 'play') {
+      show('play', playScreen({
+        seat: mine.seat,
+        api: {
+          change: (move) => changeGame(mine.roomId, move),
+          setState: (key, value) => setPuzzleState(mine.roomId, key, value),
+          end: () => endGame(mine.roomId),
+        },
+      }));
+    }
+    return screen.update(room);
+  }
+
   if (screen.kind !== 'lobby') {
     show('lobby', lobbyScreen({
       seat: mine.seat,
       build: BUILD,
+      episode: EPISODES[FIRST_EPISODE],
       onInvite: () => shareInvite(mine),
       onCopy: () => copyInvite(mine),
-      onWave: () => sendWave(mine.roomId, mine.seat).catch(() => {}),
+      onStart: () => startRun(mine),
       onLeave: () => confirmLeave(mine),
     }));
   }
   screen.update(room);
+}
+
+async function startRun(mine) {
+  try {
+    await startGame(mine.roomId, newGame(FIRST_EPISODE));
+    return true; // whichever phone got there first, a run is now on
+  } catch {
+    toast('Could not start. Check your connection and try again.');
+    return false;
+  }
 }
 
 function takeSeat(mine, seat) {

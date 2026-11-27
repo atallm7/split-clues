@@ -5,7 +5,7 @@
 //   rooms/<roomId>/meta      { v, createdAt }
 //   rooms/<roomId>/players   { a: { name, joinedAt }, b: { name, joinedAt } }
 //   rooms/<roomId>/presence  { a: { <connection>: time }, b: { ... } }   who is looking at the game right now
-//   rooms/<roomId>/wave      { from, id, at }                           the latest hello
+//   rooms/<roomId>/game      the run being played, if any (see js/game/engine.js)
 
 import {
   initializeApp, getDatabase, ref, set, remove, onValue, onDisconnect,
@@ -128,8 +128,38 @@ export function announcePresence(roomId, seat) {
   };
 }
 
-// ---------- Waving ----------
+// ---------- The game ----------
 
-export function sendWave(roomId, seat) {
-  return set(roomRef(roomId, 'wave'), { from: seat, id: randomId(6), at: serverTimestamp() });
+// Puts a new run on the table, unless one is already there. Resolves true if
+// this phone's run is the one that started.
+export async function startGame(roomId, game) {
+  const result = await withTimeout(
+    runTransaction(
+      roomRef(roomId, 'game'),
+      (current) => (current && current.id ? undefined : game),
+      { applyLocally: false },
+    ),
+    WRITE_TIMEOUT_MS,
+  );
+  return result.committed;
+}
+
+// Makes one move. `change(game)` returns the game after the move, or undefined
+// if the move no longer applies. If both phones move at once, the server runs
+// them one after the other, so nothing is lost or counted twice.
+export async function changeGame(roomId, change) {
+  const result = await withTimeout(
+    runTransaction(roomRef(roomId, 'game'), (current) => (current && current.id ? change(current) : current)),
+    WRITE_TIMEOUT_MS,
+  );
+  return result.committed;
+}
+
+// Shares one small piece of the puzzle in progress (for example the digits typed so far).
+export function setPuzzleState(roomId, key, value) {
+  return set(roomRef(roomId, `game/puzzle/state/${key}`), value);
+}
+
+export function endGame(roomId) {
+  return withTimeout(remove(roomRef(roomId, 'game')), WRITE_TIMEOUT_MS);
 }

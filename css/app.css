@@ -114,7 +114,7 @@ ul { list-style: none; }
   display: flex;
   flex-direction: column;
   gap: 18px;
-  animation: screen-in 0.4s ease both;
+  animation: screen-in 0.4s ease backwards;
 }
 
 @keyframes screen-in {
@@ -267,16 +267,6 @@ ul { list-style: none; }
 @keyframes glow {
   0%, 100% { opacity: 0.07; transform: scale(0.94); }
   50% { opacity: 0.16; transform: scale(1.04); }
-}
-
-/* A wave: that player's half gives a happy shake. */
-.locket__half.is-waving { animation: wave 0.9s ease-in-out both; }
-@keyframes wave {
-  0%, 100% { transform: none; }
-  18% { transform: rotate(-11deg) translate(-3px, -3px); }
-  38% { transform: rotate(8deg) translate(2px, -2px); }
-  58% { transform: rotate(-6deg); }
-  78% { transform: rotate(3deg); }
 }
 
 /* ---------- Paper card ---------- */
@@ -486,6 +476,342 @@ ul { list-style: none; }
 
 .status { min-height: 118px; }
 
+/* ---------- Puzzle screen: the frame every puzzle shares ---------- */
+
+/* A wrapper with no box of its own: it holds the puzzle screen and the curtain.
+   Each phone wears its player's colour: amber for the first, rose for the second. */
+.play { display: contents; --me: var(--amber); --me-deep: var(--amber-deep); }
+.play[data-seat='b'] { --me: var(--rose); --me-deep: var(--rose-deep); }
+.screen--play { gap: 10px; transition: opacity 0.25s ease; }
+/* While the curtain is up the puzzle steps back so the night sky shows through. */
+.play.is-curtained > .screen--play { animation: none; opacity: 0; pointer-events: none; }
+
+.hud { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.hud__where {
+  color: var(--mist);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.lives { display: flex; gap: 6px; }
+.life {
+  width: 22px;
+  height: 22px;
+  color: var(--rose);
+  transition: color 0.3s ease, opacity 0.3s ease, transform 0.4s var(--spring);
+}
+.life svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+.life--lost { color: var(--mist); opacity: 0.3; transform: scale(0.78); }
+
+.role { display: grid; gap: 4px; justify-items: center; text-align: center; }
+.role__plate {
+  padding: 7px 22px 8px;
+  border-radius: 999px;
+  background: var(--me);
+  color: var(--ink);
+  box-shadow: 0 2px 0 var(--me-deep);
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+.role__plate strong { font-weight: 800; letter-spacing: 0.06em; }
+.role__job { color: var(--cream); font-size: 15px; }
+.role__partner { color: var(--mist); font-size: 13px; }
+.role__partner.is-away { color: var(--amber); }
+
+.board { flex: 1; display: flex; flex-direction: column; justify-content: center; min-height: 0; }
+
+.playbar { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn--small { width: auto; min-height: 44px; padding: 8px 28px; border-radius: 14px; font-size: 16px; }
+
+.hints { margin: 0; padding-left: 22px; display: grid; gap: 8px; color: var(--ink); font-size: 17px; }
+
+/* ---------- Symbols ---------- */
+
+.tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  background: var(--night-700);
+  color: var(--cream);
+}
+.tile svg {
+  width: 70%;
+  height: 70%;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.tile--amber { color: var(--amber); }
+.tile--rose { color: var(--rose); }
+.tile--teal { color: var(--teal); }
+.glyph__cut { fill: var(--night-700); stroke: var(--night-700); }
+.glyph__cut-line { fill: none; stroke: var(--night-700); stroke-width: 3; }
+.glyph__rays { fill: none; stroke-width: 3.5; }
+
+/* ---------- Code Lock: the boxes the digits go in ---------- */
+
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.slot {
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1.5px solid rgba(42, 32, 51, 0.2);
+  background: #fffaf0;
+  color: var(--ink);
+  font: 700 26px/1 var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+}
+.slot--next { border-color: var(--amber-deep); box-shadow: 0 0 0 3px rgba(244, 184, 96, 0.35); }
+
+.slots--mirror { width: min(100%, 240px); }
+.slots--mirror .slot {
+  height: 42px;
+  border-color: rgba(243, 233, 218, 0.24);
+  background: rgba(243, 233, 218, 0.06);
+  color: var(--cream);
+}
+.slots--mirror .slot--next { border-color: var(--me); box-shadow: none; }
+
+/* ---------- Code Lock: the LOCK half ---------- */
+
+.lock { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.lock__top {
+  position: relative;
+  width: min(100%, 300px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.lock__shackle { display: block; width: 110px; height: auto; margin-bottom: -8px; stroke: #8f84a3; }
+.lock__body {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--paper) 0%, var(--paper-shade) 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+.lock__top.is-rattling { animation: rattle 0.45s ease; }
+@keyframes rattle {
+  0%, 100% { transform: none; }
+  15% { transform: translateX(-9px) rotate(-2deg); }
+  35% { transform: translateX(8px) rotate(2deg); }
+  55% { transform: translateX(-5px) rotate(-1deg); }
+  75% { transform: translateX(3px); }
+}
+
+/* A lamp hangs beside the shackle on the hardest lock. */
+.lamp {
+  --glow: var(--amber);
+  position: absolute;
+  top: 0;
+  left: 22px;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 0 10px var(--glow));
+}
+.lamp--rose { --glow: var(--rose); }
+.lamp--teal { --glow: var(--teal); }
+.lamp svg { display: block; width: 100%; height: 100%; }
+.lamp__metal { fill: #8f84a3; }
+.lamp__glass { fill: var(--glow); }
+
+.keypad { width: min(100%, 300px); display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.key {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
+  margin: 0;
+  min-height: 48px;
+  border-radius: 16px;
+  background: rgba(243, 233, 218, 0.09);
+  color: var(--cream);
+  box-shadow: inset 0 0 0 1.5px rgba(243, 233, 218, 0.2);
+  font: 600 24px/1 var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease, opacity 0.2s ease;
+}
+.key:active { transform: scale(0.94); background: rgba(243, 233, 218, 0.2); }
+.key:disabled { opacity: 0.35; cursor: default; }
+.key--back { font: 600 22px/1 var(--font-body); }
+.key--go {
+  background: linear-gradient(180deg, #f9cb80 0%, var(--amber) 100%);
+  color: var(--ink);
+  box-shadow: 0 2px 0 var(--amber-deep);
+  font: 700 18px/1 var(--font-body);
+}
+
+/* ---------- Code Lock: the KEY half ---------- */
+
+.keyside { display: grid; gap: 12px; justify-items: center; }
+.keycard { width: 100%; padding: 16px; gap: 12px; }
+.legend { display: grid; gap: 8px 10px; }
+.legend--two { grid-template-columns: repeat(2, 1fr); }
+.legend--three { grid-template-columns: repeat(3, 1fr); }
+.legend__item { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.legend__item .tile { flex: none; width: 50px; border-radius: 13px; }
+.legend--three .legend__item .tile { width: 44px; }
+.legend__equals { color: var(--ink-soft); font-weight: 700; }
+.legend__digit {
+  color: var(--ink);
+  font: 700 30px/1 var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+}
+
+.note {
+  display: grid;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1.5px dashed rgba(42, 32, 51, 0.22);
+  color: var(--ink);
+  font-size: 15px;
+}
+.note__lead { font-weight: 700; }
+.note__row { display: flex; align-items: baseline; gap: 8px; }
+.dot {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px rgba(42, 32, 51, 0.4);
+}
+.dot--amber { background: var(--amber); }
+.dot--rose { background: var(--rose); }
+.dot--teal { background: var(--teal); }
+
+.mirror { width: 100%; display: grid; gap: 6px; justify-items: center; }
+.mirror__label {
+  color: var(--mist);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---------- The curtain: unlocked, out of lives, finished ---------- */
+
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: calc(var(--safe-top) + 24px) var(--gutter) calc(var(--safe-bottom) + 28px);
+  text-align: center;
+  background: radial-gradient(85% 52% at 50% 40%, rgba(244, 184, 96, 0.26) 0%, rgba(244, 184, 96, 0) 70%);
+  animation: fade-in 0.25s ease both;
+}
+.curtain[data-kind='failed'] {
+  background: radial-gradient(85% 52% at 50% 40%, rgba(201, 96, 106, 0.3) 0%, rgba(201, 96, 106, 0) 70%);
+}
+.curtain__title {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+  font-weight: 600;
+  font-size: clamp(34px, 10vw, 46px);
+  line-height: 1.05;
+  animation: pop-in 0.5s var(--spring) 0.35s both;
+}
+.curtain__sub { max-width: 30ch; color: var(--mist); animation: fade-up 0.4s ease 0.55s both; }
+.curtain .btn { width: min(100%, 320px); margin-top: 18px; animation: fade-up 0.4s ease 0.8s both; }
+
+@keyframes pop-in { from { opacity: 0; transform: scale(0.7); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } }
+
+/* The padlock springing open. */
+.unlock { position: relative; width: 170px; height: 180px; display: grid; place-items: center; }
+.padlock { position: relative; width: 124px; height: auto; overflow: visible; animation: padlock-pop 0.6s var(--spring) both; }
+.padlock__body { fill: var(--amber); stroke: var(--amber-deep); stroke-width: 3; }
+.padlock__hole { fill: var(--night-800); }
+.padlock__shackle {
+  stroke: #d6cce2;
+  transform-box: view-box;
+  transform-origin: 86px 72px;
+  animation: shackle-open 0.7s var(--spring) 0.3s both;
+}
+@keyframes padlock-pop { from { opacity: 0; transform: scale(0.6) rotate(-8deg); } }
+@keyframes shackle-open {
+  0% { transform: none; }
+  30% { transform: translateY(3px); }
+  100% { transform: translateY(-12px) rotate(30deg); }
+}
+
+.unlock__ring {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 120px;
+  height: 120px;
+  margin: -60px;
+  border-radius: 50%;
+  border: 3px solid var(--amber);
+  opacity: 0;
+  animation: ring 0.9s ease-out 0.5s both;
+}
+@keyframes ring {
+  from { opacity: 0.9; transform: scale(0.4); }
+  to { opacity: 0; transform: scale(2.2); }
+}
+.unlock__spark {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 50%;
+  background: var(--cream);
+  opacity: 0;
+  animation: spark 0.9s cubic-bezier(0.2, 0.8, 0.3, 1) calc(0.5s + var(--delay, 0ms)) both;
+}
+.unlock__spark:nth-child(odd) { background: var(--amber); }
+.unlock__spark:nth-child(3n) { background: var(--rose); }
+@keyframes spark {
+  from { opacity: 1; transform: rotate(var(--turn)) translateY(-34px) scale(0.4); }
+  to { opacity: 0; transform: rotate(var(--turn)) translateY(-124px) scale(1); }
+}
+
+/* Out of lives: a heart that comes apart. */
+.fail { width: 104px; height: 104px; }
+.broken { display: block; width: 100%; height: 100%; overflow: visible; }
+.broken__half { fill: var(--rose-deep); transform-box: view-box; transform-origin: 24px 41px; }
+.broken__half--left { animation: break-left 0.6s var(--spring) 0.25s both; }
+.broken__half--right { animation: break-right 0.6s var(--spring) 0.25s both; }
+@keyframes break-left { to { transform: rotate(-13deg) translate(-2px, 1px); } }
+@keyframes break-right { to { transform: rotate(13deg) translate(2px, 1px); } }
+
+/* Finished: the numbers for the run. */
+.tally { display: flex; gap: 32px; margin-top: 10px; animation: fade-up 0.4s ease 0.55s both; }
+.tally p { display: grid; gap: 2px; }
+.tally strong {
+  color: var(--amber);
+  font: 600 36px/1 var(--font-display);
+  font-variation-settings: 'SOFT' 100;
+}
+.tally span {
+  color: var(--mist);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 /* ---------- Footer ---------- */
 
 .foot { text-align: center; display: grid; gap: 4px; }
@@ -619,12 +945,33 @@ ul { list-style: none; }
   .status { min-height: 96px; }
   .pair { gap: 6px; }
   .sub { font-size: 15px; margin-top: 6px; }
+
+  .screen--play { gap: 8px; }
+  .role__job { display: none; }
+  .role__plate { font-size: 19px; padding: 5px 18px 6px; }
+  .life { width: 19px; height: 19px; }
+  .lock { gap: 9px; }
+  .lock__top, .keypad { width: min(100%, 250px); }
+  .lock__shackle { width: 92px; }
+  .lock__body { padding: 10px; gap: 8px; border-radius: 18px; }
+  .lamp { width: 32px; height: 32px; left: 14px; }
+  .slot { height: 38px; font-size: 23px; }
+  .keypad { gap: 6px; }
+  .key { min-height: 41px; font-size: 21px; }
+  .btn--small { min-height: 40px; }
+  .keycard { padding: 13px; gap: 9px; }
+  .legend { gap: 6px 8px; }
+  .legend__item .tile, .legend--three .legend__item .tile { width: 36px; }
+  .legend__digit { font-size: 25px; }
+  .note { font-size: 14px; padding-top: 8px; gap: 2px; }
+  .slots--mirror .slot { height: 36px; }
 }
 
 /* ---------- Motion preferences ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   .star, .locket--drift .locket__half, .locket--drift .locket__glow,
-  .locket__half.is-waving, .screen, .toast, .pill, .sheet, .overlay { animation: none; }
+  .screen, .toast, .pill, .sheet, .overlay, .lock__top.is-rattling { animation: none; }
+  .unlock__ring, .unlock__spark { display: none; }
   .locket__half { transition: none; }
 }

@@ -35,13 +35,14 @@ export function setPill(text, kind = 'warn') {
 // Tapping outside the sheet, or any action, closes it.
 export function openSheet({ title, body, actions = [] }) {
   const close = () => {
+    if (overlay.classList.contains('is-leaving')) return;
     overlay.classList.add('is-leaving');
     setTimeout(() => overlay.remove(), 220);
   };
   const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('h2', { class: 'sheet__title' }, title),
-    body ? h('p', { class: 'sheet__body' }, body) : null,
-    h('div', { class: 'actions' }, actions.map((action) => h('button', {
+    body ? h(typeof body === 'string' ? 'p' : 'div', { class: 'sheet__body' }, body) : null,
+    h('div', { class: 'actions' }, actions.filter(Boolean).map((action) => h('button', {
       class: `btn btn--${action.kind || 'ghost'}`,
       type: 'button',
       onclick: () => { close(); if (action.onSelect) action.onSelect(); },

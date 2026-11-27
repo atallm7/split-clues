@@ -66,13 +66,3 @@ export function setLocket(svg, { a = 'here', b = 'here' } = {}) {
   svg.dataset.b = b;
   svg.dataset.joined = String(a === 'here' && b === 'here');
 }
-
-// Give one half a little shake (used when that player waves).
-export function wiggleLocket(svg, seat) {
-  const half = svg.querySelector(`.locket__half--${seat}`);
-  if (!half) return;
-  half.classList.remove('is-waving');
-  void half.getBoundingClientRect(); // restart the animation if it is already running
-  half.classList.add('is-waving');
-  half.addEventListener('animationend', () => half.classList.remove('is-waving'), { once: true });
-}

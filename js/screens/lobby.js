@@ -1,20 +1,13 @@
-// The room itself: who is here, and (for now) a way to say hello.
+// The room itself: who is here, and the way into a run of puzzles.
 
-import { h, locket, setLocket, wiggleLocket } from '../dom.js';
-import { toast } from '../ui.js';
+import { h, locket, setLocket } from '../dom.js';
+import { isHere, otherSeat } from '../room.js';
 
-// True if that player has the game open and in view right now.
-function isHere(room, seat) {
-  const marks = room.presence && room.presence[seat];
-  return !!marks && Object.keys(marks).length > 0;
-}
-
-export function lobbyScreen({ seat, build, onInvite, onCopy, onWave, onLeave }) {
-  const other = seat === 'a' ? 'b' : 'a';
+// onStart() -> Promise<boolean>: true once a run has started.
+export function lobbyScreen({ seat, build, episode, onInvite, onCopy, onStart, onLeave }) {
+  const other = otherSeat(seat);
   let state = null; // 'waiting' (partner has not joined) | 'apart' (joined, not here) | 'together'
   let partnerName = '';
-  let lastWaveId = null;
-  let firstUpdate = true;
 
   const emblem = locket('Your two halves of the locket');
   emblem.classList.add('pair__locket');
@@ -32,11 +25,12 @@ export function lobbyScreen({ seat, build, onInvite, onCopy, onWave, onLeave }) 
   const primary = h('button', {
     class: 'btn btn--primary',
     type: 'button',
-    onclick: () => {
+    onclick: async () => {
       if (state !== 'together') return onInvite();
-      onWave();
-      primary.disabled = true; // a short pause so waves cannot be spammed
-      setTimeout(() => { primary.disabled = false; }, 1200);
+      primary.disabled = true;
+      primary.textContent = 'Starting…';
+      const started = await onStart();
+      if (!started) describe(state); // put the button back; if it did start, the screen changes
     },
   });
 
@@ -69,8 +63,8 @@ export function lobbyScreen({ seat, build, onInvite, onCopy, onWave, onLeave }) 
       primary.textContent = 'Send the link again';
     } else {
       headline.textContent = 'You are both here';
-      sub.textContent = 'Puzzles arrive in the next step. For now, say hello.';
-      primary.textContent = `Wave at ${partnerName}`;
+      sub.textContent = episode.blurb;
+      primary.textContent = `Start ${episode.title}`;
     }
     primary.classList.toggle('btn--primary', next !== 'apart');
     primary.classList.toggle('btn--ghost', next === 'apart');
@@ -98,18 +92,6 @@ export function lobbyScreen({ seat, build, onInvite, onCopy, onWave, onLeave }) 
       state = next;
       partnerName = name;
       describe(next);
-    }
-
-    // A wave that was already in the room when this screen opened is old news.
-    const wave = room.wave || null;
-    if (firstUpdate) {
-      lastWaveId = wave ? wave.id : null;
-      firstUpdate = false;
-    } else if (wave && wave.id !== lastWaveId) {
-      lastWaveId = wave.id;
-      wiggleLocket(emblem, wave.from);
-      if (wave.from === seat) toast(`You waved at ${partnerName}`);
-      else toast(`${room.players[wave.from].name} waved 👋`);
     }
   }
 
