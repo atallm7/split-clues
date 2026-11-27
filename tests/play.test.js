@@ -264,17 +264,27 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   });
 
   console.log('\nStarting again and stopping');
-  await check('both tapping Start at the same moment still makes one run', async () => {
-    await Promise.all([
-      mark.getByRole('button', { name: 'Start Five Locks' }).click(),
-      joyPage.getByRole('button', { name: 'Start Five Locks' }).click(),
-    ]);
-    await sees(mark, '.hud__where', /1 of 5/i);
-    await sees(joyPage, '.hud__where', /1 of 5/i);
-    const roles = [await roleOf(mark), await roleOf(joyPage)].sort().join(',');
-    if (roles !== 'key,lock') throw new Error(`roles are ${roles}`);
-    const table = await halves(mark, joyPage);
-    await workOutCode(table.lock, table.key); // throws if the two phones were dealt different puzzles
+  // Taps the button from inside the page, with no waiting, so two phones can
+  // tap within a few thousandths of a second of each other. If the other
+  // phone's tap has already started the run, there is no button left to tap.
+  const tapStartNow = (page) => page.evaluate(() => {
+    const button = document.querySelector('.screen--lobby .btn--primary');
+    if (button) button.click();
+  });
+  await check('both tapping Start at the same moment still makes one run (tried three times)', async () => {
+    for (let round = 1; round <= 3; round++) {
+      await Promise.all([tapStartNow(mark), tapStartNow(joyPage)]);
+      await sees(mark, '.hud__where', /1 of 5/i);
+      await sees(joyPage, '.hud__where', /1 of 5/i);
+      const roles = [await roleOf(mark), await roleOf(joyPage)].sort().join(',');
+      if (roles !== 'key,lock') throw new Error(`round ${round}: roles are ${roles}`);
+      const table = await halves(mark, joyPage);
+      await workOutCode(table.lock, table.key); // throws if the two phones were dealt different puzzles
+      if (round === 3) break; // the next check stops this last run through the menu
+      await mark.evaluate(async () => (await import('./js/sync.js')).endGame(new URLSearchParams(location.search).get('room')));
+      await sees(mark, '.headline', /You are both here/);
+      await sees(joyPage, '.headline', /You are both here/);
+    }
   });
   await check('stopping the run takes both phones back to the room', async () => {
     await joyPage.getByRole('button', { name: 'Stop' }).click();
