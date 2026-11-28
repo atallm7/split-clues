@@ -39,5 +39,13 @@ EPISODES['practice-spot'] = {
   puzzles: levels('spot', 3),
 };
 
+EPISODES['practice-draw'] = {
+  id: 'practice-draw',
+  kind: 'practice',
+  title: 'Describe and Draw',
+  blurb: 'One of you describes a picture, the other draws it. Then you compare.',
+  puzzles: levels('draw', 3),
+};
+
 export const PRACTICE = Object.values(EPISODES).filter((episode) => episode.kind === 'practice');
 export const STORIES = Object.values(EPISODES).filter((episode) => episode.kind === 'story');

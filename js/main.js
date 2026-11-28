@@ -20,7 +20,7 @@ import { playScreen } from './screens/play.js';
 import { newGame, isPlayable } from './game/engine.js';
 
 // Shown at the bottom of the screen so you can tell which version a phone has loaded.
-const BUILD = 'Build 6 · spot the difference';
+const BUILD = 'Build 7 · describe and draw';
 
 const ROOM_ID = /^[a-z0-9]{20,40}$/;
 const app = document.getElementById('app');

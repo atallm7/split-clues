@@ -18,5 +18,6 @@ import { codelock } from './codelock.js';
 import { wires } from './wires.js';
 import { map } from './map.js';
 import { spot } from './spot.js';
+import { draw } from './draw.js';
 
-export const PUZZLES = { codelock, wires, map, spot };
+export const PUZZLES = { codelock, wires, map, spot, draw };

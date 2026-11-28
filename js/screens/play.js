@@ -255,6 +255,7 @@ export function playScreen({ seat, api, extras = {} }) {
     seen = null;
     dropCurtain();
     dismissSheet();
+    if (view && view.destroy) view.destroy();
 
     view = info.type.mount(role, info.puzzle, {
       // setState('', value) replaces the whole shared state in one go.
