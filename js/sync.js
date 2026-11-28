@@ -6,9 +6,15 @@
 //   rooms/<roomId>/players   { a: { name, joinedAt }, b: { name, joinedAt } }
 //   rooms/<roomId>/presence  { a: { <connection>: time }, b: { ... } }   who is looking at the game right now
 //   rooms/<roomId>/game      the run being played, if any (see js/game/engine.js)
+//   rooms/<roomId>/best      { <episode>: { ms, at } }                  fastest finish for each episode
+//
+// Surprises are kept beside the room rather than in it, so a phone never even
+// downloads its partner's surprise until the episode is finished:
+//   rooms/<roomId>-vault/<episode>/<seat>/note   { text, hasPhoto, at }
+//   rooms/<roomId>-vault/<episode>/<seat>/photo  a small JPEG as text
 
 import {
-  initializeApp, getDatabase, ref, set, remove, onValue, onDisconnect,
+  initializeApp, getDatabase, ref, set, get, remove, onValue, onDisconnect,
   runTransaction, serverTimestamp, goOnline, goOffline,
 } from '../vendor/firebase.js';
 import { DATABASE_URL } from './config.js';
@@ -164,4 +170,51 @@ export function setPuzzleState(roomId, key, value) {
 
 export function endGame(roomId) {
   return withTimeout(remove(roomRef(roomId, 'game')), WRITE_TIMEOUT_MS);
+}
+
+// Records a finish time if it beats the one on record.
+export function saveBest(roomId, episodeId, ms) {
+  return runTransaction(
+    roomRef(roomId, `best/${episodeId}`),
+    (current) => (current && current.ms <= ms ? undefined : { ms, at: serverTimestamp() }),
+  ).catch(() => {});
+}
+
+// ---------- The clock ----------
+
+// The server's idea of "now", so both phones show the same timer whatever their own clocks say.
+let clockOffset = 0;
+let clockWatched = false;
+export function serverNow() {
+  if (!clockWatched) {
+    clockWatched = true;
+    onValue(ref(database(), '.info/serverTimeOffset'), (snap) => { clockOffset = snap.val() || 0; });
+  }
+  return Date.now() + clockOffset;
+}
+
+// ---------- Surprises ----------
+
+function vaultRef(roomId, episodeId, seat, part) {
+  return ref(database(), `rooms/${roomId}-vault/${episodeId}/${seat}/${part}`);
+}
+
+// Resolves with { text, hasPhoto, at } or null.
+export async function loadSurpriseNote(roomId, episodeId, seat) {
+  return (await withTimeout(get(vaultRef(roomId, episodeId, seat, 'note')), WRITE_TIMEOUT_MS)).val();
+}
+
+// Resolves with the photo (a "data:image/jpeg..." string) or null.
+export async function loadSurprisePhoto(roomId, episodeId, seat) {
+  return (await withTimeout(get(vaultRef(roomId, episodeId, seat, 'photo')), 30000)).val();
+}
+
+// photo: a data URL to store, null to remove it, or undefined to leave it as it is.
+export async function saveSurprise(roomId, episodeId, seat, { text, photo, hasPhoto }) {
+  if (photo !== undefined) await withTimeout(set(vaultRef(roomId, episodeId, seat, 'photo'), photo), 60000);
+  await withTimeout(set(vaultRef(roomId, episodeId, seat, 'note'), { text, hasPhoto, at: serverTimestamp() }), WRITE_TIMEOUT_MS);
+}
+
+export function removeSurprise(roomId, episodeId, seat) {
+  return withTimeout(remove(ref(database(), `rooms/${roomId}-vault/${episodeId}/${seat}`)), WRITE_TIMEOUT_MS);
 }

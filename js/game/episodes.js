@@ -2,11 +2,30 @@
 // type and a difficulty level; the actual content is dealt fresh every time.
 //
 //   kind 'practice'  one puzzle type, every level, easiest first
-//   kind 'story'     a themed episode mixing the puzzle types
+//   kind 'story'     a themed episode mixing the puzzle types. Each puzzle has a
+//                    chapter `name` and an `after` line shown once it is solved.
 
 const levels = (type, count) => Array.from({ length: count }, (_, i) => ({ type, level: i + 1 }));
 
 export const EPISODES = {
+  together: {
+    id: 'together',
+    kind: 'story',
+    kicker: 'Episode 1',
+    title: 'Find Your Way Back',
+    blurb: 'A storm split the path, and the locket you share. Six clues lead back to each other.',
+    length: 'about 25 minutes',
+    intro: 'The storm came down fast. When it cleared you were on opposite sides of the valley, each holding half of the same locket. Every clue on the way back is split the same way: half with you, half with the one you are looking for. Talk it through.',
+    finale: 'You found each other',
+    puzzles: [
+      { type: 'codelock', level: 2, name: 'The Garden Gate', after: 'The gate clicks open. Beyond it, the path dips into the marsh.' },
+      { type: 'map', level: 2, name: 'The Marsh', after: 'Solid ground at last, and something glinting in the mud: the key to the old signal box.' },
+      { type: 'wires', level: 3, name: 'The Signal Box', after: 'The lamp on the hill blinks on. Now each of you can see where the other is.' },
+      { type: 'spot', level: 2, name: 'Two Windows', after: 'Same shelf, same view, nearly. You are closer than you thought.' },
+      { type: 'draw', level: 2, name: 'A Postcard', after: 'Not a perfect likeness. Worth keeping anyway.' },
+      { type: 'codelock', level: 5, name: 'The Last Door', after: 'The last lock gives. Someone is waiting on the other side.' },
+    ],
+  },
   'practice-codelock': {
     id: 'practice-codelock',
     kind: 'practice',

@@ -7,7 +7,8 @@
 //   episode    which set of puzzles
 //   flip       0 or 1: decides who gets which half in round one; it alternates after
 //   index      which puzzle of the episode is on the table
-//   startedAt  when the run began (server time), finishedAt when it ended
+//   begun      false while a story's introduction is showing
+//   startedAt  when the clock started (server time), finishedAt when it stopped
 //   hintsUsed  hints taken across the whole run
 //   puzzle     the puzzle on the table:
 //     n, attempt   its place in the episode, and which try this is
@@ -56,6 +57,7 @@ export function newGame(episodeId) {
     flip: Math.random() < 0.5 ? 0 : 1,
     index: 0,
     hintsUsed: 0,
+    begun: !episode.intro, // a story waits on its introduction; the clock starts after it
     startedAt: TIME,
     puzzle: dealt(episode, 0, 1),
   };
@@ -104,6 +106,12 @@ function stillOn(game, deal, status) {
 }
 
 // ---------- Moves ----------
+
+// Past a story's introduction: the first puzzle appears and the clock starts.
+export function afterBegin(game) {
+  if (!game || game.begun || game.finishedAt) return undefined;
+  return { ...game, begun: true, startedAt: TIME };
+}
 
 export function afterSolve(game, deal) {
   if (!stillOn(game, deal, 'playing')) return undefined;

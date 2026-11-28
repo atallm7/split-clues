@@ -8,7 +8,7 @@
 set -e
 cd "$(dirname "$0")/.."
 FIREBASE_BIN="${FIREBASE_BIN:-firebase}"
-ONLY="${*:-rooms play wires map spot draw}"
+ONLY="${*:-rooms play wires map spot draw story}"
 
 node tools/stamp.js --check
 for unit in tests/*.unit.test.js; do node "$unit"; done

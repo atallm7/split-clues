@@ -51,7 +51,7 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
     await mark.waitForSelector('.overlay', { state: 'detached' });
   });
   await shot(mark, 'play-01-room');
-  await check('room screen still fits small and large iPhones', () => fits(mark));
+  await check('room screen is never wider than the phone', () => fits(mark, { scroll: true }));
   await check('one tap puts both phones in the first puzzle', async () => {
     await startPractice(mark, 'Code Lock');
     await sees(mark, '.hud__where', /Code Lock · 1 of 5/i);

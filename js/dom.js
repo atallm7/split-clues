@@ -10,7 +10,7 @@ export function h(tag, props, ...children) {
     else if (key === 'value' || key === 'disabled' || key === 'hidden') el[key] = value;
     else el.setAttribute(key, value === true ? '' : value);
   }
-  for (const child of children.flat()) {
+  for (const child of children.flat(Infinity)) {
     if (child == null || child === false) continue;
     el.append(child.nodeType ? child : document.createTextNode(String(child)));
   }
@@ -19,7 +19,7 @@ export function h(tag, props, ...children) {
 
 // Swap everything inside `parent` for the given nodes.
 export function replaceChildren(parent, ...nodes) {
-  parent.replaceChildren(...nodes.flat().filter(Boolean));
+  parent.replaceChildren(...nodes.flat(Infinity).filter(Boolean));
 }
 
 // ---------- The locket ----------

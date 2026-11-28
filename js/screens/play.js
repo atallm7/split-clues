@@ -2,12 +2,12 @@
 // hold, lives, hint, the "unlocked" moment) and lets the puzzle type draw its
 // own half in the middle.
 
-import { h, replaceChildren } from '../dom.js';
+import { h, replaceChildren, locket, setLocket } from '../dom.js';
 import { toast, openSheet } from '../ui.js';
 import { isHere, otherSeat } from '../room.js';
 import {
   ENGINE_VERSION, LIVES, current, roleOf, isFinished, dealId, clock,
-  afterSolve, afterMiss, afterHint, afterNext, afterRetry,
+  afterBegin, afterSolve, afterMiss, afterHint, afterNext, afterRetry,
 } from '../game/engine.js';
 
 const HEART = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 41C10 30 5 22 8 15 11 8 20 7 24 14 28 7 37 8 40 15 43 22 38 30 24 41Z"/></svg>';
@@ -152,7 +152,8 @@ export function playScreen({ seat, api, extras = {} }) {
   function raiseCurtain(kind, ...children) {
     dismissSheet();
     curtain.dataset.kind = kind;
-    replaceChildren(curtain, children);
+    // The inner box centres itself when there is room and scrolls from the top when there is not.
+    replaceChildren(curtain, h('div', { class: 'curtain__inner' }, children));
     curtain.scrollTop = 0;
     curtain.hidden = false;
     el.classList.add('is-curtained');
@@ -183,12 +184,15 @@ export function playScreen({ seat, api, extras = {} }) {
     const last = game.puzzle.n + 1 >= total;
     const next = actionButton(last ? 'Finish' : 'Next clue', (now) => afterNext(now, deal));
     const count = `Clue ${game.puzzle.n + 1} of ${total}`;
+    // In a story, each solved clue moves the tale along.
+    const { slot } = current(game);
+    const tale = slot.after ? h('p', { class: 'curtain__story' }, slot.after) : null;
 
     // Some puzzles have their own ending (a drawing to reveal) instead of the padlock.
     if (type.solvedView) {
       const names = { [seat]: room.players[seat].name, [other]: room.players[other].name };
       const role = { [seat]: roleOf(game, seat), [other]: roleOf(game, other) };
-      return raiseCurtain('reveal', ...type.solvedView(puzzle, game.puzzle.state || {}, { names, role }), h('p', { class: 'curtain__sub' }, count), next);
+      return raiseCurtain('reveal', ...type.solvedView(puzzle, game.puzzle.state || {}, { names, role }), tale, h('p', { class: 'curtain__sub' }, count), next);
     }
 
     const art = h('div', { class: 'unlock' },
@@ -196,7 +200,7 @@ export function playScreen({ seat, api, extras = {} }) {
       Array.from({ length: 10 }, (_, i) => h('span', { class: 'unlock__spark', style: `--turn:${i * 36}deg; --delay:${(i % 3) * 40}ms` })),
     );
     art.insertAdjacentHTML('beforeend', PADLOCK);
-    raiseCurtain('unlocked', art, h('h2', { class: 'curtain__title' }, type.solvedTitle || 'Unlocked'), h('p', { class: 'curtain__sub' }, count), next);
+    raiseCurtain('unlocked', art, h('h2', { class: 'curtain__title' }, type.solvedTitle || 'Unlocked'), tale, h('p', { class: 'curtain__sub' }, count), next);
     if (extras.sound) extras.sound('unlock');
   }
 
@@ -232,7 +236,16 @@ export function playScreen({ seat, api, extras = {} }) {
         });
       },
     }, 'Back to the room');
+    // At the end of a story the two halves of the locket come together.
+    let reunion = null;
+    if (episode.kind === 'story') {
+      reunion = locket('The locket, whole again');
+      reunion.classList.add('curtain__locket');
+      setLocket(reunion, { a: 'away', b: 'away' });
+      setTimeout(() => setLocket(reunion, { a: 'here', b: 'here' }), 500);
+    }
     raiseCurtain('finished',
+      reunion,
       h('p', { class: 'tagline' }, episode.title),
       h('h2', { class: 'curtain__title' }, episode.finale || `All ${total} solved`),
       h('div', { class: 'tally' },
@@ -273,7 +286,7 @@ export function playScreen({ seat, api, extras = {} }) {
     lives.hidden = !scored;
     hintButton.hidden = info.type.hints(info.puzzle, {}).length === 0;
 
-    where.textContent = `${info.episode.title} · ${game.puzzle.n + 1} of ${info.total}`;
+    where.textContent = `${info.slot.name || info.episode.title} · ${game.puzzle.n + 1} of ${info.total}`;
     const half = halfName(info.type, role);
     plateLead.textContent = `You have ${half.article}`;
     plateRole.textContent = half.name;
@@ -298,6 +311,21 @@ export function playScreen({ seat, api, extras = {} }) {
       return;
     }
     if (isFinished(game)) return showFinished(game);
+
+    // A story opens with a few lines; either of you taps Begin for both.
+    if (!game.begun) {
+      if (drawnDeal !== 'intro') {
+        drawnDeal = 'intro';
+        const { episode } = current(game);
+        raiseCurtain('intro',
+          h('p', { class: 'tagline' }, episode.kicker),
+          h('h2', { class: 'curtain__title' }, episode.title),
+          h('p', { class: 'curtain__story' }, episode.intro),
+          actionButton('Begin', (now) => afterBegin(now)),
+        );
+      }
+      return;
+    }
     if (dealId(game) !== drawnDeal) draw(game);
 
     const state = game.puzzle;

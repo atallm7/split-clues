@@ -7,7 +7,7 @@
 import {
   configState, onConnectionChange, refreshConnection,
   createRoom, watchRoom, claimSeat, announcePresence,
-  startGame, changeGame, setPuzzleState, endGame,
+  startGame, changeGame, setPuzzleState, endGame, saveBest, serverNow, loadSurpriseNote,
 } from './sync.js';
 import * as store from './store.js';
 import { h, locket, replaceChildren } from './dom.js';
@@ -17,10 +17,13 @@ import { titleScreen } from './screens/title.js';
 import { joinScreen } from './screens/join.js';
 import { lobbyScreen } from './screens/lobby.js';
 import { playScreen } from './screens/play.js';
-import { newGame, isPlayable } from './game/engine.js';
+import { newGame, isPlayable, clock } from './game/engine.js';
+import { EPISODES, STORIES } from './game/episodes.js';
+import { otherSeat } from './room.js';
+import { openSurpriseEditor, surpriseView } from './surprise.js';
 
 // Shown at the bottom of the screen so you can tell which version a phone has loaded.
-const BUILD = 'Build 7 · describe and draw';
+const BUILD = 'Build 8 · episode one';
 
 const ROOM_ID = /^[a-z0-9]{20,40}$/;
 const app = document.getElementById('app');
@@ -54,7 +57,7 @@ function start() {
 
 function show(kind, built) {
   if (screen.destroy) screen.destroy();
-  screen = { kind, update: built.update, destroy: built.destroy };
+  screen = { kind, update: built.update, destroy: built.destroy, redraw: built.redraw };
   replaceChildren(app, built.el);
   window.scrollTo(0, 0);
 }
@@ -187,6 +190,7 @@ function renderRoom() {
           setState: (key, value) => setPuzzleState(mine.roomId, key, value),
           end: () => endGame(mine.roomId),
         },
+        extras: playExtras(mine),
       }));
     }
     return screen.update(room);
@@ -200,9 +204,86 @@ function renderRoom() {
       onCopy: () => copyInvite(mine),
       onStart: (episodeId) => startRun(mine, episodeId),
       onLeave: () => confirmLeave(mine),
+      extras: lobbyExtras(mine),
     }));
+    checkSurprises(mine);
   }
   screen.update(room);
+}
+
+// ---------- Around the puzzles: the timer, best times, surprises ----------
+
+function playExtras(mine) {
+  return {
+    // Keeps the small clock at the top of the puzzle screen ticking. Returns a way to stop it.
+    ticker(el, game) {
+      const tick = () => {
+        const showing = store.setting('timer', true) && typeof game.startedAt === 'number';
+        el.textContent = showing ? clock(serverNow() - game.startedAt) : '';
+      };
+      tick();
+      const id = setInterval(tick, 1000);
+      return () => clearInterval(id);
+    },
+    menu() {
+      const showing = store.setting('timer', true);
+      return [{ label: showing ? 'Hide the timer' : 'Show the timer', kind: 'ghost', onSelect: () => store.setSetting('timer', !showing) }];
+    },
+    // Extra lines for the last screen: the best time, and your partner's surprise if they left one.
+    finished(game, room, took) {
+      const episode = EPISODES[game.episode];
+      const partner = otherSeat(mine.seat);
+      const best = room.best && room.best[game.episode];
+      let line = null;
+      if (took !== null) {
+        // "New" also covers the moment after the other phone has already recorded this same run.
+        const justSet = best && typeof best.at === 'number' && Math.abs(best.at - game.finishedAt) < 15000;
+        line = h('p', { class: 'finale__best' }, !best || took < best.ms || justSet ? 'A new best time' : `Best time ${clock(best.ms)}`);
+        saveBest(mine.roomId, game.episode, took);
+      }
+      const gift = episode.kind === 'story' ? surpriseView(mine.roomId, episode.id, partner, room.players[partner].name) : null;
+      return [line, gift];
+    },
+  };
+}
+
+function lobbyExtras(mine) {
+  return {
+    // Redraw the list when what this phone knows about its own surprises changes.
+    shelfKey: () => mine.surprises || null,
+    storyFooter(episode, room) {
+      const partner = room.players[otherSeat(mine.seat)];
+      if (!partner) return null;
+      const saved = !!(mine.surprises && mine.surprises[episode.id]);
+      return h('button', {
+        class: 'btn btn--text story__surprise',
+        type: 'button',
+        onclick: () => openSurpriseEditor({
+          roomId: mine.roomId,
+          episode,
+          seat: mine.seat,
+          partnerName: partner.name,
+          onChanged: (has) => {
+            mine.surprises = { ...(mine.surprises || {}), [episode.id]: has };
+            if (session === mine && screen.redraw) screen.redraw();
+          },
+        }),
+      }, saved ? `Your surprise for ${partner.name} is tucked away. Change it` : `Leave a surprise for ${partner.name}`);
+    },
+  };
+}
+
+// Finds out which stories this phone's player has already left a surprise for.
+function checkSurprises(mine) {
+  if (mine.surprises) return;
+  mine.surprises = {};
+  for (const episode of STORIES) {
+    loadSurpriseNote(mine.roomId, episode.id, mine.seat).then((note) => {
+      if (!note) return;
+      mine.surprises = { ...mine.surprises, [episode.id]: true };
+      if (session === mine && screen.redraw) screen.redraw();
+    }).catch(() => {});
+  }
 }
 
 async function startRun(mine, episodeId) {

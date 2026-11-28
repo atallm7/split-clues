@@ -31,8 +31,9 @@ export function setPill(text, kind = 'warn') {
 
 // ---------- Sheet ----------
 
-// openSheet({ title, body, actions: [{ label, kind: 'primary' | 'ghost' | 'danger', onSelect }] })
-// Tapping outside the sheet, or any action, closes it.
+// openSheet({ title, body, actions: [{ label, kind: 'primary' | 'ghost' | 'danger', onSelect, keepOpen }] })
+// Tapping outside the sheet, or any action, closes it. An action with keepOpen
+// stays open and is handed (close, button) so it can close when its work is done.
 export function openSheet({ title, body, actions = [] }) {
   const close = () => {
     if (overlay.classList.contains('is-leaving')) return;
@@ -42,11 +43,17 @@ export function openSheet({ title, body, actions = [] }) {
   const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('h2', { class: 'sheet__title' }, title),
     body ? h(typeof body === 'string' ? 'p' : 'div', { class: 'sheet__body' }, body) : null,
-    h('div', { class: 'actions' }, actions.filter(Boolean).map((action) => h('button', {
-      class: `btn btn--${action.kind || 'ghost'}`,
-      type: 'button',
-      onclick: () => { close(); if (action.onSelect) action.onSelect(); },
-    }, action.label))),
+    h('div', { class: 'actions' }, actions.filter(Boolean).map((action) => {
+      const button = h('button', {
+        class: `btn btn--${action.kind || 'ghost'}`,
+        type: 'button',
+        onclick: () => {
+          if (!action.keepOpen) close();
+          if (action.onSelect) action.onSelect(close, button);
+        },
+      }, action.label);
+      return button;
+    })),
   );
   const overlay = h('div', { class: 'overlay', onclick: (event) => { if (event.target === overlay) close(); } }, sheet);
   document.body.append(overlay);

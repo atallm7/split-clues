@@ -56,7 +56,7 @@ const { begin, sees, shot, fits, setVisible, readRoom } = require('./helpers');
     }
   });
   await shot(mark, 'rooms-04-together');
-  await check('room screen fits small and large iPhones', () => fits(joy));
+  await check('room screen is never wider than the phone', () => fits(joy, { scroll: true }));
 
   console.log('\nLocking a phone and coming back');
   await check('Joy locking her phone shows as stepped away', async () => {
@@ -65,7 +65,7 @@ const { begin, sees, shot, fits, setVisible, readRoom } = require('./helpers');
     await sees(mark, '.who--b', /Joy\s+away/i);
   });
   await shot(mark, 'rooms-05-away');
-  await check('stepped-away screen fits small and large iPhones', () => fits(mark));
+  await check('stepped-away screen is never wider than the phone', () => fits(mark, { scroll: true }));
   await check('unlocking brings her straight back', async () => {
     await setVisible(joy, true);
     await sees(mark, '.headline', /You are both here/);

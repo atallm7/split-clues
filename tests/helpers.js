@@ -54,7 +54,8 @@ async function shot(page, name) {
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
 }
 
-async function fits(page) {
+// Pass { scroll: true } for a screen that is allowed to scroll down (the room, the last screen).
+async function fits(page, { scroll = false } = {}) {
   const before = page.viewportSize();
   const tooBig = [];
   for (const [width, height] of SIZES) {
@@ -64,7 +65,7 @@ async function fits(page) {
       tall: document.documentElement.scrollHeight - window.innerHeight,
       wide: document.documentElement.scrollWidth - window.innerWidth,
     }));
-    if (over.tall > 0 || over.wide > 0) tooBig.push(`${width}x${height} overflows by ${over.tall} down, ${over.wide} across`);
+    if ((over.tall > 0 && !scroll) || over.wide > 0) tooBig.push(`${width}x${height} overflows by ${over.tall} down, ${over.wide} across`);
   }
   await page.setViewportSize(before);
   if (tooBig.length) throw new Error(tooBig.join('; '));

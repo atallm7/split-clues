@@ -49,6 +49,17 @@ export function forgetRoom(roomId) {
   write({ ...data, rooms, last: data.last === roomId ? null : data.last });
 }
 
+// Small switches kept on this phone (the timer, sound, a dismissed tip).
+export function setting(name, fallback) {
+  const settings = read().settings || {};
+  return name in settings ? settings[name] : fallback;
+}
+
+export function setSetting(name, value) {
+  const data = read();
+  write({ ...data, settings: { ...(data.settings || {}), [name]: value } });
+}
+
 // The room this phone was last in, or null.
 export function lastRoom() {
   const data = read();
