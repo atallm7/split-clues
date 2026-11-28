@@ -1,0 +1,3 @@
+# Logs the Firebase emulator writes while tests or the demo recording run
+*-debug.log
+*.capture.mp4
