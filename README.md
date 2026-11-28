@@ -53,6 +53,15 @@ Add names to run only some of the two-phone tests, for example
 `tests/run.sh rooms story`. The `*.unit.test.js` files deal thousands of
 puzzles of each type and check every one can be solved from its two halves.
 
+## Recording a demo video
+
+`tools/demo-video.js` plays Episode 1 on two phones side by side, with
+captions, against the local emulator, and saves an MP4 (needs ffmpeg):
+
+```bash
+firebase emulators:exec --config tests/firebase.json --only database --project demo-split-clues "node tools/demo-video.js demo.mp4"
+```
+
 ## Adding an episode
 
 Episodes are listed in `js/game/episodes.js`. A story is a list of puzzles,
