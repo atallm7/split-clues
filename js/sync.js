@@ -130,13 +130,14 @@ export function announcePresence(roomId, seat) {
 
 // ---------- The game ----------
 
-// Puts a new run on the table, unless one is already there. Resolves true if
-// this phone's run is the one that started.
-export async function startGame(roomId, game) {
+// Puts a new run on the table, unless a playable one is already there
+// (`isPlayable` decides; leftovers from an older version are replaced).
+// Resolves true if this phone's run is the one that started.
+export async function startGame(roomId, game, isPlayable) {
   const result = await withTimeout(
     runTransaction(
       roomRef(roomId, 'game'),
-      (current) => (current && current.id ? undefined : game),
+      (current) => (isPlayable(current) ? undefined : game),
       { applyLocally: false },
     ),
     WRITE_TIMEOUT_MS,
@@ -155,9 +156,10 @@ export async function changeGame(roomId, change) {
   return result.committed;
 }
 
-// Shares one small piece of the puzzle in progress (for example the digits typed so far).
+// Shares one small piece of the puzzle in progress (for example the digits typed
+// so far). An empty key replaces the whole shared state; a null value removes the piece.
 export function setPuzzleState(roomId, key, value) {
-  return set(roomRef(roomId, `game/puzzle/state/${key}`), value);
+  return set(roomRef(roomId, key ? `game/puzzle/state/${key}` : 'game/puzzle/state'), value);
 }
 
 export function endGame(roomId) {

@@ -4,14 +4,14 @@
 #
 # Needs: Node with Playwright, Java, and the Firebase CLI (`npm install firebase-tools`).
 # Point FIREBASE_BIN at the CLI if it is not on your PATH.
-# Pass the name of one two-phone test (rooms or play) to run only that one.
+# Pass the names of two-phone tests (rooms, play, wires, ...) to run only those.
 set -e
 cd "$(dirname "$0")/.."
 FIREBASE_BIN="${FIREBASE_BIN:-firebase}"
-ONLY="${1:-rooms play}"
+ONLY="${*:-rooms play wires}"
 
 node tools/stamp.js --check
-node tests/codelock.unit.test.js
+for unit in tests/*.unit.test.js; do node "$unit"; done
 node tests/offline.test.js
 
 STEPS=""

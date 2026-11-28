@@ -77,6 +77,31 @@ function setVisible(page, visible) {
   }, visible ? 'visible' : 'hidden');
 }
 
+// Opens the practice list in the room and starts one puzzle type.
+async function startPractice(page, title) {
+  await page.getByRole('button', { name: 'Practice a puzzle' }).click();
+  await page.locator('.pick', { hasText: title }).getByRole('button', { name: 'Play' }).click();
+}
+
+// Which half of the puzzle a phone holds, and how many lives it shows.
+const roleOf = (page) => page.locator('.board').getAttribute('data-role');
+const livesLeft = (page) => page.locator('.life:not(.life--lost)').count();
+
+// The two phones by the half each holds: { lock: page, key: page, holder: { lock: 'Mark', key: 'Joy' } }.
+async function byHalf(mark, joy) {
+  const markRole = await roleOf(mark);
+  const joyRole = await roleOf(joy);
+  if (!markRole || !joyRole || markRole === joyRole) throw new Error(`halves are ${markRole} and ${joyRole}`);
+  return { [markRole]: mark, [joyRole]: joy, holder: { [markRole]: 'Mark', [joyRole]: 'Joy' } };
+}
+
+// Stops the run from the menu on one phone.
+async function stopRun(page) {
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: 'Stop this run' }).click();
+  await page.getByRole('button', { name: 'Stop the run' }).click();
+}
+
 // What is saved for a room in the (local) database.
 async function readRoom(invite) {
   const roomId = new URL(invite).searchParams.get('room');
@@ -158,4 +183,4 @@ async function begin() {
   return { base, check, newPhone, pairUp, finish };
 }
 
-module.exports = { begin, sees, shot, fits, setVisible, readRoom, SHOTS };
+module.exports = { begin, sees, shot, fits, setVisible, readRoom, startPractice, roleOf, livesLeft, byHalf, stopRun, SHOTS };

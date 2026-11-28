@@ -2,7 +2,7 @@
 // reading the symbols off one screen and the key card off the other.
 // Run with tests/run.sh, which starts a local database emulator first.
 
-const { begin, sees, shot, fits, setVisible, readRoom } = require('./helpers');
+const { begin, sees, shot, fits, setVisible, readRoom, startPractice, roleOf, livesLeft } = require('./helpers');
 
 const TWISTS = {
   asRead: (d) => d,
@@ -10,8 +10,6 @@ const TWISTS = {
   plusOne: (d) => d.map((n) => (n === 9 ? 0 : n + 1)),
   swapEnds: (d) => [d[3], d[1], d[2], d[0]],
 };
-
-const roleOf = (page) => page.locator('.board').getAttribute('data-role');
 
 // Which of the two phones holds which half right now.
 async function halves(mark, joy) {
@@ -37,7 +35,6 @@ async function type(lock, digits) {
 }
 
 const tryIt = (lock) => lock.getByRole('button', { name: 'Try the code' }).click();
-const livesLeft = (page) => page.locator('.life:not(.life--lost)').count();
 const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0');
 
 (async () => {
@@ -46,16 +43,20 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   let joyPage = joy;
 
   console.log('\nStarting a run');
-  await check('the room offers the run', async () => {
-    await sees(mark, '.screen--lobby .btn--primary', /Start Five Locks/);
-    await sees(mark, '.sub', /Five code locks/);
+  await check('the room offers practice puzzles', async () => {
+    await sees(mark, '.shelf', /Practice a puzzle/);
+    await mark.getByRole('button', { name: 'Practice a puzzle' }).click();
+    await sees(mark, '.picks', /Code Lock\s+5 levels/);
+    await mark.getByRole('button', { name: 'Close' }).click();
+    await mark.waitForSelector('.overlay', { state: 'detached' });
   });
   await shot(mark, 'play-01-room');
   await check('room screen still fits small and large iPhones', () => fits(mark));
   await check('one tap puts both phones in the first puzzle', async () => {
-    await mark.getByRole('button', { name: 'Start Five Locks' }).click();
-    await sees(mark, '.hud__where', /Five Locks · 1 of 5/i);
-    await sees(joyPage, '.hud__where', /Five Locks · 1 of 5/i);
+    await startPractice(mark, 'Code Lock');
+    await sees(mark, '.hud__where', /Code Lock · 1 of 5/i);
+    await sees(joyPage, '.hud__where', /Code Lock · 1 of 5/i);
+    await mark.waitForSelector('.overlay', { state: 'detached', timeout: 3000 }); // the practice list closes itself
   });
   await check('one phone has the lock and the other has the key', async () => {
     const roles = [await roleOf(mark), await roleOf(joyPage)].sort().join(',');
@@ -94,8 +95,8 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   await check('a wrong code costs one life on both phones', async () => {
     await type(first.lock, wrongCode(solved.code));
     await tryIt(first.lock);
-    await sees(first.lock, '.toast', /Not it\. 2 lives left\./);
-    await sees(first.key, '.toast', /Not it\. 2 lives left\./);
+    await sees(first.lock, '.toast', /Wrong code\. 2 lives left\./);
+    await sees(first.key, '.toast', /Wrong code\. 2 lives left\./);
     if ((await livesLeft(first.lock)) !== 2 || (await livesLeft(first.key)) !== 2) throw new Error('lives did not drop to 2 on both');
     await sees(first.key, '.mirror .slots', /^$/);
   });
@@ -123,14 +124,14 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
     await tryIt(first.lock);
     await sees(first.lock, '.curtain__title', /Unlocked/);
     await sees(first.key, '.curtain__title', /Unlocked/, 2000);
-    await sees(first.key, '.curtain__sub', /Lock 1 of 5/);
+    await sees(first.key, '.curtain__sub', /Clue 1 of 5/);
   });
   await shot(first.key, 'play-05-unlocked');
   await check('the unlocked screen fits small and large iPhones', () => fits(first.key));
 
   console.log('\nLock 2');
   await check('either player can move both phones on', async () => {
-    await first.key.getByRole('button', { name: 'Next lock' }).click();
+    await first.key.getByRole('button', { name: 'Next clue' }).click();
     await sees(mark, '.hud__where', /2 of 5/i);
     await sees(joyPage, '.hud__where', /2 of 5/i);
     if (await mark.locator('.curtain:not([hidden])').count()) throw new Error('the curtain is still up');
@@ -210,7 +211,7 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
     await type(table.lock, worked.code);
     await tryIt(table.lock);
     await sees(table.key, '.curtain__title', /Unlocked/);
-    await sees(table.lock, '.curtain__sub', new RegExp(`Lock ${n} of 5`));
+    await sees(table.lock, '.curtain__sub', new RegExp(`Clue ${n} of 5`));
     return table;
   }
 
@@ -218,7 +219,7 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
 
   console.log('\nLocks 3 to 5');
   await check('lock 3 uses mirror-image symbols and opens', async () => {
-    await mark.getByRole('button', { name: 'Next lock' }).click();
+    await mark.getByRole('button', { name: 'Next clue' }).click();
     await sees(joyPage, '.hud__where', /3 of 5/i);
     await solveAndMoveOn(3, async (worked, table) => {
       if (worked.legendSize !== 8) throw new Error(`key card has ${worked.legendSize} symbols`);
@@ -227,7 +228,7 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
     });
   });
   await check('lock 4 has a twist on the key card only, and opens', async () => {
-    await joyPage.getByRole('button', { name: 'Next lock' }).click();
+    await joyPage.getByRole('button', { name: 'Next clue' }).click();
     await sees(mark, '.hud__where', /4 of 5/i);
     await solveAndMoveOn(4, async (worked, table) => {
       if (worked.rule === 'asRead') throw new Error('no twist on the key card');
@@ -237,7 +238,7 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   });
   let last = null;
   await check('lock 5 has a lamp on the lock and lamp rules on the key card, and opens', async () => {
-    await mark.getByRole('button', { name: 'Next lock' }).click();
+    await mark.getByRole('button', { name: 'Next clue' }).click();
     await sees(joyPage, '.hud__where', /5 of 5/i);
     last = await solveAndMoveOn(5, async (worked, table) => {
       if (!worked.lamp) throw new Error('no lamp on the lock');
@@ -250,8 +251,8 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   console.log('\nFinishing');
   await check('the last lock offers Finish, and both phones see the result', async () => {
     await last.key.getByRole('button', { name: 'Finish' }).click();
-    await sees(mark, '.curtain__title', /All 5 unlocked/);
-    await sees(joyPage, '.curtain__title', /All 5 unlocked/);
+    await sees(mark, '.curtain__title', /All 5 solved/);
+    await sees(joyPage, '.curtain__title', /All 5 solved/);
     await sees(mark, '.tally', /\d+:\d\d\s+your time\s+2\s+hints used/i);
   });
   await shot(mark, 'play-09-finished');
@@ -268,11 +269,12 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
   // tap within a few thousandths of a second of each other. If the other
   // phone's tap has already started the run, there is no button left to tap.
   const tapStartNow = (page) => page.evaluate(() => {
-    const button = document.querySelector('.screen--lobby .btn--primary');
+    const button = document.querySelector('.pick [data-episode="practice-codelock"]');
     if (button) button.click();
   });
   await check('both tapping Start at the same moment still makes one run (tried three times)', async () => {
     for (let round = 1; round <= 3; round++) {
+      for (const page of [mark, joyPage]) await page.getByRole('button', { name: 'Practice a puzzle' }).click();
       await Promise.all([tapStartNow(mark), tapStartNow(joyPage)]);
       await sees(mark, '.hud__where', /1 of 5/i);
       await sees(joyPage, '.hud__where', /1 of 5/i);
@@ -287,9 +289,10 @@ const wrongCode = (code) => String((Number(code) + 1111) % 10000).padStart(4, '0
     }
   });
   await check('stopping the run takes both phones back to the room', async () => {
-    await joyPage.getByRole('button', { name: 'Stop' }).click();
+    await joyPage.getByRole('button', { name: 'Menu' }).click();
+    await shot(joyPage, 'play-10-menu');
+    await joyPage.getByRole('button', { name: 'Stop this run' }).click();
     await sees(joyPage, '.sheet__title', /Stop this run/);
-    await shot(joyPage, 'play-10-stop');
     await joyPage.getByRole('button', { name: 'Stop the run' }).click();
     await sees(mark, '.headline', /You are both here/);
     await sees(joyPage, '.headline', /You are both here/);

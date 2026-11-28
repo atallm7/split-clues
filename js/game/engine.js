@@ -15,6 +15,7 @@
 //     lives, hints lives left and hints shown
 //     status       'playing' | 'solved' | 'failed'
 //     misses       how many wrong tries so far this attempt
+//     note         a few words about the latest wrong try, shown on both phones
 //     state        whatever the puzzle type needs to share (for a lock: the digits typed)
 //
 // Every function named like `after…` takes the current game and returns the next
@@ -25,22 +26,24 @@ import { PUZZLES } from '../puzzles/index.js';
 import { newSeed } from './random.js';
 import { randomId } from '../util.js';
 
-export const ENGINE_VERSION = 1;
+export const ENGINE_VERSION = 2;
 export const LIVES = 3;
 
 const TIME = { '.sv': 'timestamp' }; // the database swaps this for its own clock
 
 function dealt(episode, n, attempt) {
   const slot = episode.puzzles[n];
+  const type = PUZZLES[slot.type];
+  const seed = newSeed();
   return {
     n,
     attempt,
-    seed: newSeed(),
+    seed,
     lives: LIVES,
     hints: 0,
     misses: 0,
     status: 'playing',
-    state: PUZZLES[slot.type].initialState(),
+    state: type.initialState(type.deal(slot.level, seed)),
   };
 }
 
@@ -108,18 +111,25 @@ export function afterSolve(game, deal) {
 }
 
 // A wrong try: lose a life. With none left the puzzle is failed.
-export function afterMiss(game, deal) {
+// By default the shared state starts over (a lock clears its digits). Pass
+// { keep: true } to leave it as it is, or { state } to set it. `note` is a few
+// words both phones show, such as "Wrong wire".
+export function afterMiss(game, deal, { keep = false, state, note } = {}) {
   if (!stillOn(game, deal, 'playing')) return undefined;
   const lives = Math.max(0, game.puzzle.lives - 1);
-  const type = PUZZLES[EPISODES[game.episode].puzzles[game.puzzle.n].type];
+  const { type, puzzle } = current(game);
+  let next = type.initialState(puzzle);
+  if (keep) next = game.puzzle.state || null;
+  if (state) next = state;
   return {
     ...game,
     puzzle: {
       ...game.puzzle,
       lives,
       misses: (game.puzzle.misses || 0) + 1,
+      note: note || null,
       status: lives === 0 ? 'failed' : 'playing',
-      state: type.initialState(),
+      state: next,
     },
   };
 }

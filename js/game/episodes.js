@@ -1,19 +1,27 @@
 // The sets of puzzles you can play. Each entry in `puzzles` names a puzzle
 // type and a difficulty level; the actual content is dealt fresh every time.
+//
+//   kind 'practice'  one puzzle type, every level, easiest first
+//   kind 'story'     a themed episode mixing the puzzle types
+
+const levels = (type, count) => Array.from({ length: count }, (_, i) => ({ type, level: i + 1 }));
 
 export const EPISODES = {
-  locks: {
-    id: 'locks',
-    title: 'Five Locks',
-    blurb: 'Five code locks, each trickier than the last. You swap who holds the lock and who holds the key every round.',
-    puzzles: [
-      { type: 'codelock', level: 1 },
-      { type: 'codelock', level: 2 },
-      { type: 'codelock', level: 3 },
-      { type: 'codelock', level: 4 },
-      { type: 'codelock', level: 5 },
-    ],
+  'practice-codelock': {
+    id: 'practice-codelock',
+    kind: 'practice',
+    title: 'Code Lock',
+    blurb: 'A lock with four symbols on one phone, the key card on the other.',
+    puzzles: levels('codelock', 5),
+  },
+  'practice-wires': {
+    id: 'practice-wires',
+    kind: 'practice',
+    title: 'Color Wires',
+    blurb: 'A panel of wires on one phone, the rulebook on the other. Cut the right one.',
+    puzzles: levels('wires', 5),
   },
 };
 
-export const FIRST_EPISODE = 'locks';
+export const PRACTICE = Object.values(EPISODES).filter((episode) => episode.kind === 'practice');
+export const STORIES = Object.values(EPISODES).filter((episode) => episode.kind === 'story');

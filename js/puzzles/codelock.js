@@ -124,7 +124,7 @@ function lockView(puzzle, actions) {
     if (label === 'go') {
       if (entry.length < CODE_LENGTH) return;
       busy = true;
-      const attempt = entry === puzzle.answer ? actions.solve() : actions.miss();
+      const attempt = entry === puzzle.answer ? actions.solve() : actions.miss({ note: 'Wrong code' });
       return attempt.finally(() => { busy = false; });
     }
     if (entry.length < CODE_LENGTH) actions.setState('entry', entry + label);

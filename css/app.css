@@ -487,6 +487,8 @@ ul { list-style: none; }
 .play.is-curtained > .screen--play { animation: none; opacity: 0; pointer-events: none; }
 
 .hud { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.hud__timer { margin-left: 8px; font-variant-numeric: tabular-nums; }
+.hud__timer:empty { display: none; }
 .hud__where {
   color: var(--mist);
   font-size: 12px;
@@ -700,6 +702,176 @@ ul { list-style: none; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+
+/* ---------- Color Wires: the WIRES half ---------- */
+
+.wires { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.wires > .btn { width: min(100%, 330px); }
+
+.panel {
+  --wire-red: #e5646e;
+  --wire-blue: #6fa8ea;
+  --wire-yellow: #f3cf62;
+  --wire-green: #7fcf9a;
+  --wire-white: #f3e9da;
+  width: min(100%, 330px);
+  padding: 10px 12px 12px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #3a3353 0%, #2b2542 100%);
+  box-shadow: inset 0 0 0 2px rgba(243, 233, 218, 0.12), 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+.panel__top { min-height: 26px; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.panel__label { color: var(--mist); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.panel__extras { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.plate {
+  min-width: 30px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #cfc4dd;
+  color: var(--ink);
+  font: 700 17px/1.3 var(--font-display);
+  text-align: center;
+}
+.bulb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #4a425f;
+  box-shadow: inset 0 0 0 2px rgba(243, 233, 218, 0.25);
+}
+.bulb--lit { background: #ffe9a8; box-shadow: 0 0 12px 3px rgba(255, 221, 130, 0.75); }
+
+.panel__wires { display: grid; gap: 4px; }
+.wire {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 8px 0 4px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--wire-white);
+  cursor: pointer;
+}
+.wire--red { color: var(--wire-red); }
+.wire--blue { color: var(--wire-blue); }
+.wire--yellow { color: var(--wire-yellow); }
+.wire--green { color: var(--wire-green); }
+.wire__number {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(243, 233, 218, 0.12);
+  color: var(--cream);
+  font: 700 13px/1 var(--font-body);
+}
+.wire__line { width: 100%; height: 34px; overflow: visible; }
+.wire__core { fill: none; stroke: currentColor; stroke-width: 9; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.wire__stripes { fill: none; stroke: #2b2542; stroke-width: 9; stroke-dasharray: 9 13; vector-effect: non-scaling-stroke; }
+.wire__cutters {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin-top: -13px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--cream);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.15s ease, transform 0.2s var(--spring);
+}
+.wire.is-picked { background: rgba(243, 233, 218, 0.12); box-shadow: inset 0 0 0 2px var(--cream); }
+.wire.is-picked .wire__cutters { opacity: 1; transform: none; }
+
+.panel.is-sparking { animation: rattle 0.45s ease; }
+
+/* ---------- Color Wires: the RULEBOOK half ---------- */
+
+.rulebook { display: grid; gap: 12px; justify-items: center; }
+.rulecard { width: 100%; padding: 16px; gap: 8px; }
+.rulebook__label { color: var(--ink-soft); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.rulecard__lead { color: var(--ink-soft); font-size: 14px; }
+.rules { margin: 0; padding: 0; list-style: none; display: grid; gap: 7px; counter-reset: rule; }
+.rule {
+  counter-increment: rule;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  column-gap: 8px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.3;
+}
+.rule::before {
+  content: counter(rule);
+  grid-row: 1 / span 2;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 700;
+}
+.rule__if { font-weight: 700; }
+.rule__then::before { content: '→ '; color: var(--ink-soft); }
+.chip { white-space: nowrap; font-weight: 700; }
+.chip::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--chip, #f3e9da);
+  box-shadow: 0 0 0 1.5px rgba(42, 32, 51, 0.5);
+}
+.chip--red { --chip: #e5646e; }
+.chip--blue { --chip: #6fa8ea; }
+.chip--yellow { --chip: #f3cf62; }
+.chip--green { --chip: #7fcf9a; }
+.chip--white { --chip: #fffaf0; }
+
+/* ---------- The room's list of things to play ---------- */
+
+.shelf { display: grid; gap: 12px; }
+.story { gap: 8px; text-align: left; }
+.story__kicker { color: var(--amber-deep); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.story__meta { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+
+/* Once you have both joined, the names shrink to make room for the list. */
+.screen--lobby[data-state='together'] .pair,
+.screen--lobby[data-state='apart'] .pair { flex: none; flex-direction: row; justify-content: center; gap: 14px; }
+.screen--lobby[data-state='together'] .pair__locket,
+.screen--lobby[data-state='apart'] .pair__locket { width: 84px; }
+.screen--lobby[data-state='together'] .pair__names,
+.screen--lobby[data-state='apart'] .pair__names { width: auto; gap: 18px; }
+.screen--lobby[data-state='together'] .status,
+.screen--lobby[data-state='apart'] .status { min-height: 0; }
+.screen--lobby[data-state='together'] .shelf,
+.screen--lobby[data-state='apart'] .shelf { flex: 1; align-content: start; }
+
+.picks { display: grid; gap: 10px; }
+.pick { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pick__text { display: grid; gap: 1px; min-width: 0; text-align: left; }
+.pick__text strong { color: var(--ink); font-size: 18px; }
+.pick__text span { color: var(--ink-soft); font-size: 14px; }
+.pick .btn--small { flex: none; }
 
 /* ---------- The curtain: unlocked, out of lives, finished ---------- */
 
@@ -965,6 +1137,17 @@ ul { list-style: none; }
   .legend__digit { font-size: 25px; }
   .note { font-size: 14px; padding-top: 8px; gap: 2px; }
   .slots--mirror .slot { height: 36px; }
+
+  .wires, .rulebook { gap: 8px; }
+  .panel { padding: 7px 10px 9px; }
+  .panel__top { min-height: 22px; margin-bottom: 2px; }
+  .panel__wires { gap: 1px; }
+  .wire { min-height: 33px; }
+  .wire__line { height: 28px; }
+  .rulecard { padding: 12px; gap: 6px; }
+  .rulecard__lead { font-size: 13px; }
+  .rules { gap: 5px; }
+  .rule { font-size: 14px; line-height: 1.25; }
 }
 
 /* ---------- Motion preferences ---------- */

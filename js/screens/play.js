@@ -26,22 +26,27 @@ const BROKEN_HEART = `
     <path class="broken__half broken__half--right" d="M24 14C28 7 37 8 40 15 43 22 38 30 24 41L22 33 27 27 20 21Z"/>
   </svg>`;
 
-function capital(word) {
-  return word[0].toUpperCase() + word.slice(1);
+// "the LOCK" for most halves; some (PICTURE A) read better without "the".
+function halfName(type, role) {
+  const article = type.roleArticles ? type.roleArticles[role] : 'the ';
+  return { article, name: type.roleNames[role] };
 }
 
 // api: { change(fn) -> Promise<boolean>, setState(key, value) -> Promise, end() -> Promise }
-export function playScreen({ seat, api }) {
+// extras (optional): { finished(game, room) -> node, menu() -> [sheet actions], ticker(el, game) -> stop() }
+export function playScreen({ seat, api, extras = {} }) {
   const other = otherSeat(seat);
   let room = null;
   let drawnDeal = null; // which deal of which puzzle is on screen
   let view = null; // the half drawn by the puzzle type
   let seen = null; // what was last shown, to spot changes
   let closeSheet = null;
+  let stopTicker = null;
 
   // Top of the screen is information only, kept to the centre: FaceTime's
   // video window may sit over a top corner.
-  const where = h('p', { class: 'hud__where' });
+  const where = h('span');
+  const timer = h('span', { class: 'hud__timer' });
   const lives = h('div', { class: 'lives', role: 'img' });
   const hearts = Array.from({ length: LIVES }, () => {
     const heart = h('span', { class: 'life' });
@@ -50,24 +55,26 @@ export function playScreen({ seat, api }) {
     return heart;
   });
 
+  const plateLead = document.createTextNode('');
   const plateRole = h('strong');
-  const plate = h('p', { class: 'role__plate' }, 'You have the ', plateRole);
+  const plate = h('p', { class: 'role__plate' }, plateLead, plateRole);
   const job = h('p', { class: 'role__job' });
   const partnerLine = h('p', { class: 'role__partner' });
 
   const board = h('div', { class: 'board' });
   const curtain = h('div', { class: 'curtain', hidden: true });
+  const hintButton = h('button', { class: 'btn btn--ghost btn--small', type: 'button', onclick: () => showHints() }, 'Hint');
 
   // The curtain is a sibling of the puzzle screen rather than a child, so it
   // always covers the whole phone whatever the screen underneath is doing.
   const el = h('div', { class: 'play', 'data-seat': seat },
     h('section', { class: 'screen screen--play' },
-      h('div', { class: 'hud' }, where, lives),
+      h('div', { class: 'hud' }, h('p', { class: 'hud__where' }, where, timer), lives),
       h('div', { class: 'role' }, plate, job, partnerLine),
       board,
       h('div', { class: 'playbar' },
-        h('button', { class: 'btn btn--ghost btn--small', type: 'button', onclick: () => showHints() }, 'Hint'),
-        h('button', { class: 'btn btn--text', type: 'button', onclick: confirmStop }, 'Stop'),
+        hintButton,
+        h('button', { class: 'btn btn--text', type: 'button', onclick: openMenu }, 'Menu'),
       ),
     ),
     curtain,
@@ -93,7 +100,7 @@ export function playScreen({ seat, api }) {
     if (!game || isFinished(game) || game.puzzle.status !== 'playing') return;
     const deal = dealId(game);
     const { type, puzzle } = current(game);
-    const all = type.hints(puzzle);
+    const all = type.hints(puzzle, game.puzzle.state || {});
     const shown = all.slice(0, game.puzzle.hints);
     const more = shown.length < all.length;
 
@@ -114,7 +121,19 @@ export function playScreen({ seat, api }) {
     });
   }
 
-  // ---------- Stopping ----------
+  // ---------- Menu ----------
+
+  function openMenu() {
+    dismissSheet();
+    closeSheet = openSheet({
+      title: 'Menu',
+      actions: [
+        ...(extras.menu ? extras.menu() : []),
+        { label: 'Stop this run', kind: 'ghost', onSelect: confirmStop },
+        { label: 'Keep playing', kind: 'primary' },
+      ],
+    });
+  }
 
   function confirmStop() {
     dismissSheet();
@@ -134,6 +153,7 @@ export function playScreen({ seat, api }) {
     dismissSheet();
     curtain.dataset.kind = kind;
     replaceChildren(curtain, children);
+    curtain.scrollTop = 0;
     curtain.hidden = false;
     el.classList.add('is-curtained');
   }
@@ -157,32 +177,37 @@ export function playScreen({ seat, api }) {
     return button;
   }
 
-  function showUnlocked(game) {
+  function showSolved(game) {
     const deal = dealId(game);
-    const { type, total } = current(game);
+    const { type, puzzle, total } = current(game);
     const last = game.puzzle.n + 1 >= total;
+    const next = actionButton(last ? 'Finish' : 'Next clue', (now) => afterNext(now, deal));
+    const count = `Clue ${game.puzzle.n + 1} of ${total}`;
+
+    // Some puzzles have their own ending (a drawing to reveal) instead of the padlock.
+    if (type.solvedView) {
+      const names = { [seat]: room.players[seat].name, [other]: room.players[other].name };
+      const role = { [seat]: roleOf(game, seat), [other]: roleOf(game, other) };
+      return raiseCurtain('reveal', ...type.solvedView(puzzle, game.puzzle.state || {}, { names, role }), h('p', { class: 'curtain__sub' }, count), next);
+    }
+
     const art = h('div', { class: 'unlock' },
       h('span', { class: 'unlock__ring' }),
       Array.from({ length: 10 }, (_, i) => h('span', { class: 'unlock__spark', style: `--turn:${i * 36}deg; --delay:${(i % 3) * 40}ms` })),
     );
     art.insertAdjacentHTML('beforeend', PADLOCK);
-    raiseCurtain('unlocked',
-      art,
-      h('h2', { class: 'curtain__title' }, 'Unlocked'),
-      h('p', { class: 'curtain__sub' }, `${capital(type.noun)} ${game.puzzle.n + 1} of ${total}`),
-      actionButton(last ? 'Finish' : `Next ${type.noun}`, (now) => afterNext(now, deal)),
-    );
+    raiseCurtain('unlocked', art, h('h2', { class: 'curtain__title' }, 'Unlocked'), h('p', { class: 'curtain__sub' }, count), next);
+    if (extras.sound) extras.sound('unlock');
   }
 
   function showFailed(game) {
     const deal = dealId(game);
-    const { type } = current(game);
     const art = h('div', { class: 'fail' });
     art.innerHTML = BROKEN_HEART;
     raiseCurtain('failed',
       art,
       h('h2', { class: 'curtain__title' }, 'Out of lives'),
-      h('p', { class: 'curtain__sub' }, `This ${type.noun} resets with a brand new puzzle.`),
+      h('p', { class: 'curtain__sub' }, 'This clue resets with a brand new puzzle.'),
       actionButton('Try again', (now) => afterRetry(now, deal)),
     );
   }
@@ -190,9 +215,11 @@ export function playScreen({ seat, api }) {
   function showFinished(game) {
     if (drawnDeal === 'finished') return;
     drawnDeal = 'finished';
+    if (stopTicker) stopTicker();
+    stopTicker = null;
     const { episode, total } = current(game);
     const took = typeof game.finishedAt === 'number' && typeof game.startedAt === 'number'
-      ? clock(game.finishedAt - game.startedAt) : null;
+      ? game.finishedAt - game.startedAt : null;
     const hintsUsed = game.hintsUsed || 0;
     const back = h('button', {
       class: 'btn btn--primary',
@@ -207,13 +234,15 @@ export function playScreen({ seat, api }) {
     }, 'Back to the room');
     raiseCurtain('finished',
       h('p', { class: 'tagline' }, episode.title),
-      h('h2', { class: 'curtain__title' }, `All ${total} unlocked`),
+      h('h2', { class: 'curtain__title' }, episode.finale || `All ${total} solved`),
       h('div', { class: 'tally' },
-        took ? h('p', null, h('strong', null, took), h('span', null, 'your time')) : null,
+        took === null ? null : h('p', null, h('strong', null, clock(took)), h('span', null, 'your time')),
         h('p', null, h('strong', null, hintsUsed), h('span', null, hintsUsed === 1 ? 'hint used' : 'hints used')),
       ),
+      extras.finished ? extras.finished(game, room, took) : null,
       back,
     );
+    if (extras.sound) extras.sound('finish');
   }
 
   // ---------- Keeping up with the room ----------
@@ -228,16 +257,28 @@ export function playScreen({ seat, api }) {
     dismissSheet();
 
     view = info.type.mount(role, info.puzzle, {
+      // setState('', value) replaces the whole shared state in one go.
       setState: (key, value) => api.setState(key, value).catch(() => {}),
       solve: () => send((now) => afterSolve(now, deal)),
-      miss: () => send((now) => afterMiss(now, deal)),
+      miss: (options) => send((now) => afterMiss(now, deal, options)),
+      seat,
+      names: { [seat]: room.players[seat].name, [other]: room.players[other].name },
     });
     replaceChildren(board, view.el);
     board.dataset.role = role;
+    board.dataset.type = info.type.type;
+
+    const scored = info.type.scored !== false;
+    lives.hidden = !scored;
+    hintButton.hidden = info.type.hints(info.puzzle, {}).length === 0;
 
     where.textContent = `${info.episode.title} · ${game.puzzle.n + 1} of ${info.total}`;
-    plateRole.textContent = info.type.roleNames[role];
+    const half = halfName(info.type, role);
+    plateLead.textContent = `You have ${half.article}`;
+    plateRole.textContent = half.name;
     job.textContent = info.type.roleJobs[role];
+
+    if (!stopTicker && extras.ticker) stopTicker = extras.ticker(timer, game);
   }
 
   // Called with the latest room every time anything in it changes.
@@ -261,27 +302,39 @@ export function playScreen({ seat, api }) {
     const state = game.puzzle;
     const { type } = current(game);
     const partner = room.players[other];
+    const partnerHalf = halfName(type, roleOf(game, other));
     partnerLine.textContent = isHere(room, other)
-      ? `${partner.name} has the ${type.roleNames[roleOf(game, other)]}`
+      ? `${partner.name} has ${partnerHalf.article}${partnerHalf.name}`
       : `${partner.name} stepped away`;
     partnerLine.classList.toggle('is-away', !isHere(room, other));
 
-    view.update(state.state || {});
+    view.update(state.state || {}, { status: state.status });
     lives.setAttribute('aria-label', `${state.lives} of ${LIVES} lives left`);
     hearts.forEach((heart, i) => heart.classList.toggle('life--lost', i >= state.lives));
 
     if (seen) {
       if (state.lives < seen.lives) {
         view.onMiss();
-        if (state.status === 'playing') toast(`Not it. ${state.lives} ${state.lives === 1 ? 'life' : 'lives'} left.`);
+        if (extras.sound) extras.sound('miss');
+        if (state.status === 'playing') {
+          toast(`${state.note || 'Not it'}. ${state.lives} ${state.lives === 1 ? 'life' : 'lives'} left.`);
+        }
       }
       // Either of you asking for a hint opens it on both phones.
       if (state.hints > seen.hints) showHints();
     }
-    if (state.status === 'solved' && (!seen || seen.status !== 'solved')) showUnlocked(game);
+    if (state.status === 'solved' && (!seen || seen.status !== 'solved')) showSolved(game);
     if (state.status === 'failed' && (!seen || seen.status !== 'failed')) showFailed(game);
     seen = { lives: state.lives, hints: state.hints, status: state.status };
   }
 
-  return { el, update, destroy: dismissSheet };
+  return {
+    el,
+    update,
+    destroy() {
+      dismissSheet();
+      if (stopTicker) stopTicker();
+      if (view && view.destroy) view.destroy();
+    },
+  };
 }

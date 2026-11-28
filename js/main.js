@@ -18,10 +18,9 @@ import { joinScreen } from './screens/join.js';
 import { lobbyScreen } from './screens/lobby.js';
 import { playScreen } from './screens/play.js';
 import { newGame, isPlayable } from './game/engine.js';
-import { EPISODES, FIRST_EPISODE } from './game/episodes.js';
 
 // Shown at the bottom of the screen so you can tell which version a phone has loaded.
-const BUILD = 'Build 3 · code lock';
+const BUILD = 'Build 4 · color wires';
 
 const ROOM_ID = /^[a-z0-9]{20,40}$/;
 const app = document.getElementById('app');
@@ -197,19 +196,18 @@ function renderRoom() {
     show('lobby', lobbyScreen({
       seat: mine.seat,
       build: BUILD,
-      episode: EPISODES[FIRST_EPISODE],
       onInvite: () => shareInvite(mine),
       onCopy: () => copyInvite(mine),
-      onStart: () => startRun(mine),
+      onStart: (episodeId) => startRun(mine, episodeId),
       onLeave: () => confirmLeave(mine),
     }));
   }
   screen.update(room);
 }
 
-async function startRun(mine) {
+async function startRun(mine, episodeId) {
   try {
-    await startGame(mine.roomId, newGame(FIRST_EPISODE));
+    await startGame(mine.roomId, newGame(episodeId), isPlayable);
     return true; // whichever phone got there first, a run is now on
   } catch {
     toast('Could not start. Check your connection and try again.');
