@@ -43,7 +43,7 @@ export function lobbyScreen({ seat, build, onInvite, onCopy, onStart, onLeave, e
     h('div', { class: 'actions' },
       invite,
       h('div', { class: 'actions__row' },
-        h('button', { class: 'btn btn--text', type: 'button', onclick: onCopy }, 'Copy invite link'),
+        h('button', { class: 'btn btn--text', type: 'button', onclick: onCopy }, 'Copy link'),
         extras.settings ? extras.settings() : null,
         h('button', { class: 'btn btn--text', type: 'button', onclick: onLeave }, 'Leave room'),
       ),

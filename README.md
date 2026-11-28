@@ -15,9 +15,14 @@ Play it at https://atallm7.github.io/split-clues/
 - `js/game/` holds the rules every puzzle shares (who has which half, lives,
   hints, moving on) and the list of episodes. `js/puzzles/` has one file per
   puzzle type; each draws only the half a phone holds.
+- `js/surprise.js` is the note and photo each player can leave for the other.
+  It is stored beside the room, and a phone only fetches its partner's
+  surprise on the last screen of a finished episode.
+- `js/sound.js` makes the optional sound effects (off by default).
 - `js/store.js` is what a phone remembers between visits (name, room, which
-  player it is). The room id also lives in the page address, so a Home Screen
-  icon made from inside a room opens that room.
+  player it is, and small switches like the timer and sound). The room id also
+  lives in the page address, so a Home Screen icon made from inside a room
+  opens that room.
 - `sw.js` lets the game open without signal and keeps the page itself fresh.
 - `database.rules.json` is a copy of the rules pasted into the Firebase console.
 - `vendor/firebase.js` is the Firebase database library bundled into one file,
@@ -44,7 +49,15 @@ Node with Playwright, Java, and the Firebase CLI.
 FIREBASE_BIN=/path/to/firebase tests/run.sh
 ```
 
-Add `rooms` or `play` to run just one of the two-phone tests.
+Add names to run only some of the two-phone tests, for example
+`tests/run.sh rooms story`. The `*.unit.test.js` files deal thousands of
+puzzles of each type and check every one can be solved from its two halves.
+
+## Adding an episode
+
+Episodes are listed in `js/game/episodes.js`. A story is a list of puzzles,
+each naming a puzzle type, a level, a chapter name and a line shown once it is
+solved.
 
 ## Trying it on a computer
 

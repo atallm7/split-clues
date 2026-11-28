@@ -58,6 +58,26 @@ const { begin, sees, shot, fits, setVisible, readRoom } = require('./helpers');
   await shot(mark, 'rooms-04-together');
   await check('room screen is never wider than the phone', () => fits(joy, { scroll: true }));
 
+  console.log('\nSmall comforts');
+  await check('an iPhone in Safari gets a one-time tip about the Home Screen', async () => {
+    await sees(joy, '.tip', /Add to Home Screen/);
+    await joy.locator('.tip').getByRole('button', { name: 'Got it' }).click();
+    if (await joy.locator('.tip').count()) throw new Error('the tip is still showing');
+    await joy.reload();
+    await sees(joy, '.headline', /You are both here/);
+    if (await joy.locator('.tip').count()) throw new Error('the tip came back after reloading');
+  });
+  await check('sound is off until someone turns it on, and the choice is remembered', async () => {
+    await sees(joy, '.actions__row', /Sound: off/);
+    await joy.getByRole('button', { name: 'Sound: off' }).click();
+    await sees(joy, '.actions__row', /Sound: on/);
+    await sees(mark, '.actions__row', /Sound: off/); // each phone has its own switch
+    await joy.reload();
+    await sees(joy, '.actions__row', /Sound: on/);
+    await joy.getByRole('button', { name: 'Sound: on' }).click();
+    await sees(joy, '.actions__row', /Sound: off/);
+  });
+
   console.log('\nLocking a phone and coming back');
   await check('Joy locking her phone shows as stepped away', async () => {
     await setVisible(joy, false);

@@ -7,6 +7,8 @@ const { solveCurrent } = require('./solvers');
 
 const EMULATOR = 'http://127.0.0.1:9000';
 const NAMESPACE = 'demo-split-clues-default-rtdb';
+// The first episode's card in the room (there is more than one episode).
+const card = (page) => page.locator('.story', { hasText: 'Find Your Way Back' });
 const CHAPTERS = ['The Garden Gate', 'The Marsh', 'The Signal Box', 'Two Windows', 'A Postcard', 'The Last Door'];
 
 async function vault(invite, seat) {
@@ -36,7 +38,7 @@ async function vault(invite, seat) {
   await easel.close();
 
   await check('Mark writes a note and adds a photo', async () => {
-    await mark.getByRole('button', { name: 'Leave a surprise for Joy' }).click();
+    await card(mark).getByRole('button', { name: 'Leave a surprise for Joy' }).click();
     await sees(mark, '.sheet__title', /A surprise for Joy/);
     await sees(mark, '.surprise', /Joy sees this only on the last screen/);
     await mark.locator('.field--area').fill('Three more weeks.\nI miss you.');
@@ -66,7 +68,7 @@ async function vault(invite, seat) {
     if (await joy.evaluate(() => document.documentElement.innerHTML.includes('Three more weeks'))) throw new Error('Joy\'s page contains the note');
   });
   await check('Joy leaves a note without a photo, and can reopen it', async () => {
-    await joy.getByRole('button', { name: 'Leave a surprise for Mark' }).click();
+    await card(joy).getByRole('button', { name: 'Leave a surprise for Mark' }).click();
     await joy.getByRole('button', { name: 'Save the surprise' }).click();
     await sees(joy, '.toast', /Write a note or add a photo first/);
     await joy.locator('.field--area').fill('Look behind the couch cushion.');
@@ -85,7 +87,7 @@ async function vault(invite, seat) {
 
   console.log('\nStarting the episode');
   await check('Play opens the introduction on both phones', async () => {
-    await joy.locator('.story').getByRole('button', { name: 'Play' }).click();
+    await card(joy).getByRole('button', { name: 'Play' }).click();
     for (const page of [mark, joy]) {
       await sees(page, '.curtain__title', /Find Your Way Back/);
       await sees(page, '.curtain__story', /The storm came down fast/);

@@ -21,9 +21,10 @@ import { newGame, isPlayable, clock } from './game/engine.js';
 import { EPISODES, STORIES } from './game/episodes.js';
 import { otherSeat } from './room.js';
 import { openSurpriseEditor, surpriseView } from './surprise.js';
+import { play as playSound, soundOn, toggleSound, primeSound } from './sound.js';
 
 // Shown at the bottom of the screen so you can tell which version a phone has loaded.
-const BUILD = 'Build 8 · episode one';
+const BUILD = 'Build 9 · two episodes';
 
 const ROOM_ID = /^[a-z0-9]{20,40}$/;
 const app = document.getElementById('app');
@@ -32,8 +33,12 @@ const app = document.getElementById('app');
 let screen = { kind: null };
 // The room this phone is in: { roomId, seat, room, presence, stop }
 let session = null;
+// The hold that keeps the screen from locking during a run, and whether one is wanted.
+let awake = null;
+let wantAwake = false;
 
 scatterStars(document.getElementById('sky'));
+primeSound();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 start();
 
@@ -58,6 +63,7 @@ function start() {
 function show(kind, built) {
   if (screen.destroy) screen.destroy();
   screen = { kind, update: built.update, destroy: built.destroy, redraw: built.redraw };
+  keepAwake(kind === 'play');
   replaceChildren(app, built.el);
   window.scrollTo(0, 0);
 }
@@ -227,8 +233,12 @@ function playExtras(mine) {
     },
     menu() {
       const showing = store.setting('timer', true);
-      return [{ label: showing ? 'Hide the timer' : 'Show the timer', kind: 'ghost', onSelect: () => store.setSetting('timer', !showing) }];
+      return [
+        { label: showing ? 'Hide the timer' : 'Show the timer', kind: 'ghost', onSelect: () => store.setSetting('timer', !showing) },
+        { label: soundOn() ? 'Turn sound off' : 'Turn sound on', kind: 'ghost', onSelect: toggleSound },
+      ];
     },
+    sound: playSound,
     // Extra lines for the last screen: the best time, and your partner's surprise if they left one.
     finished(game, room, took) {
       const episode = EPISODES[game.episode];
@@ -249,6 +259,27 @@ function playExtras(mine) {
 
 function lobbyExtras(mine) {
   return {
+    // A sound switch for the row of small buttons at the bottom of the room.
+    settings() {
+      const button = h('button', {
+        class: 'btn btn--text',
+        type: 'button',
+        onclick: () => { button.textContent = toggleSound() ? 'Sound: on' : 'Sound: off'; },
+      }, soundOn() ? 'Sound: on' : 'Sound: off');
+      return button;
+    },
+    // On an iPhone in Safari, a one-time tip about putting the room on the Home Screen.
+    tip() {
+      if (!onIphoneBrowser() || store.setting('home-tip-seen', false)) return null;
+      const card = h('div', { class: 'tip' },
+        h('p', null, h('strong', null, 'Keep this room one tap away. '), 'Tap the Share button in Safari, then "Add to Home Screen".'),
+        h('button', { class: 'btn btn--text', type: 'button', onclick: () => {
+          store.setSetting('home-tip-seen', true);
+          card.remove();
+        } }, 'Got it'),
+      );
+      return card;
+    },
     // Redraw the list when what this phone knows about its own surprises changes.
     shelfKey: () => mine.surprises || null,
     storyFooter(episode, room) {
@@ -337,6 +368,31 @@ function confirmLeave(mine) {
     ],
   });
 }
+
+// True in Safari on an iPhone or iPad, false once the game runs from a Home Screen icon.
+function onIphoneBrowser() {
+  const apple = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const fromIcon = navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  return apple && !fromIcon;
+}
+
+// Stops the phone dimming and locking itself in the middle of a puzzle.
+async function keepAwake(on) {
+  wantAwake = on;
+  try {
+    if (on && !awake && navigator.wakeLock && document.visibilityState === 'visible') {
+      awake = await navigator.wakeLock.request('screen');
+      awake.addEventListener('release', () => { awake = null; });
+    } else if (!on && awake) {
+      await awake.release();
+    }
+  } catch {
+    // Not every phone allows this (low battery, older software). The game works without it.
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && wantAwake) keepAwake(true);
+});
 
 // ---------- Inviting ----------
 
