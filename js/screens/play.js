@@ -196,7 +196,7 @@ export function playScreen({ seat, api, extras = {} }) {
       Array.from({ length: 10 }, (_, i) => h('span', { class: 'unlock__spark', style: `--turn:${i * 36}deg; --delay:${(i % 3) * 40}ms` })),
     );
     art.insertAdjacentHTML('beforeend', PADLOCK);
-    raiseCurtain('unlocked', art, h('h2', { class: 'curtain__title' }, 'Unlocked'), h('p', { class: 'curtain__sub' }, count), next);
+    raiseCurtain('unlocked', art, h('h2', { class: 'curtain__title' }, type.solvedTitle || 'Unlocked'), h('p', { class: 'curtain__sub' }, count), next);
     if (extras.sound) extras.sound('unlock');
   }
 

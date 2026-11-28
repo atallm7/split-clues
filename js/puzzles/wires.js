@@ -325,6 +325,7 @@ export const wires = {
     wires: 'Describe the panel. Cut when you both agree.',
     rulebook: 'Ask about the panel. Find the first true rule.',
   },
+  solvedTitle: 'Clean cut',
   deal,
   initialState,
   hints,

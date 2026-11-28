@@ -11,9 +11,11 @@
 // and optionally:
 //   scored: false           no lives for this one
 //   roleArticles            the word before each half's name, when it is not "the "
+//   solvedTitle             the word on the padlock screen, when it is not "Unlocked"
 //   solvedView(puzzle, state, who)  its own ending in place of the padlock
 
 import { codelock } from './codelock.js';
 import { wires } from './wires.js';
+import { map } from './map.js';
 
-export const PUZZLES = { codelock, wires };
+export const PUZZLES = { codelock, wires, map };

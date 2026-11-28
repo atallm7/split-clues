@@ -120,8 +120,8 @@ async function cutWire(page, index) {
   });
   await check('cutting the right wire unlocks on both phones', async () => {
     await cutWire(table.wires, worked.cut);
-    await sees(table.wires, '.curtain__title', /Unlocked/);
-    await sees(table.rulebook, '.curtain__title', /Unlocked/, 2000);
+    await sees(table.wires, '.curtain__title', /Clean cut/);
+    await sees(table.rulebook, '.curtain__title', /Clean cut/, 2000);
   });
 
   console.log('\nColor Wires: levels 2 to 4');
@@ -148,7 +148,7 @@ async function cutWire(page, index) {
       await fits(table.wires);
       await fits(table.rulebook);
       await cutWire(table.wires, worked.cut);
-      await sees(table.rulebook, '.curtain__title', /Unlocked/);
+      await sees(table.rulebook, '.curtain__title', /Clean cut/);
     });
   }
 
@@ -186,7 +186,7 @@ async function cutWire(page, index) {
   });
   await check('the right wire on panel 2 unlocks, and Finish ends the run on both phones', async () => {
     await cutWire(table.wires, worked.cut);
-    await sees(table.rulebook, '.curtain__title', /Unlocked/);
+    await sees(table.rulebook, '.curtain__title', /Clean cut/);
     await table.rulebook.getByRole('button', { name: 'Finish' }).click();
     await sees(mark, '.curtain__title', /All 5 solved/);
     await sees(joy, '.curtain__title', /All 5 solved/);

@@ -23,5 +23,13 @@ export const EPISODES = {
   },
 };
 
+EPISODES['practice-map'] = {
+  id: 'practice-map',
+  kind: 'practice',
+  title: 'Map Directions',
+  blurb: 'One phone has the map, the other has a marker to move. Find the treasure.',
+  puzzles: levels('map', 4),
+};
+
 export const PRACTICE = Object.values(EPISODES).filter((episode) => episode.kind === 'practice');
 export const STORIES = Object.values(EPISODES).filter((episode) => episode.kind === 'story');
