@@ -31,5 +31,13 @@ EPISODES['practice-map'] = {
   puzzles: levels('map', 4),
 };
 
+EPISODES['practice-spot'] = {
+  id: 'practice-spot',
+  kind: 'practice',
+  title: 'Spot the Difference',
+  blurb: 'Two shelves that look almost the same. Find the three things that differ.',
+  puzzles: levels('spot', 3),
+};
+
 export const PRACTICE = Object.values(EPISODES).filter((episode) => episode.kind === 'practice');
 export const STORIES = Object.values(EPISODES).filter((episode) => episode.kind === 'story');
